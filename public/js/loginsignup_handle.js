@@ -1,5 +1,6 @@
 /* ── Login ── */
 async function handleLogin() {
+    debugger;
     clearAuthMessages();
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-pass').value;
@@ -10,7 +11,7 @@ async function handleLogin() {
         const redirect = params.get('redirect') || sessionStorage.getItem('ap_redirect_after_login');
         sessionStorage.removeItem('ap_redirect_after_login');
         if (redirect) window.location.replace(redirect);
-        else window.location.replace(user.role === 'admin' ? 'admin.html' : 'homepage.html');
+        else window.location.replace(['administrator', 'pharmacist'].includes(user.role) ? 'admin.html' : 'homepage.html');
     } catch (err) {
         showError('login', err.message);
         setLoading('login-btn', false);

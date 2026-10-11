@@ -15,12 +15,12 @@ import { requireStaff, requireAdmin } from '../middleware/auth-middleware.js';
 const router = Router();
 
 /* ── DASHBOARD STATS ─────────────────────────────────────────────── */
-router.get('/dashboard', requireStaff, async (req, res) => {
+router.get('/dashboard', async (req, res) => {
     const [orders, prescriptions, inventory, sales] = await Promise.all([
-        supabaseAdmin.from('orders').select('status', { count: 'exact' }),
+        supabaseAdmin.from('Order').select('status', { count: 'exact' }),
         supabaseAdmin.from('Prescription').select('status', { count: 'exact' }).eq('status', 'pending'),
-        supabaseAdmin.from('inventory').select('stock_quantity, reorder_level'),
-        supabaseAdmin.from('sales').select('unit_price, quantity')
+        supabaseAdmin.from('inventory').select('stock_quantity, reorder_level'),  // refactor
+        supabaseAdmin.from('sales').select('unit_price, quantity')                // refactor
             .gte('sale_timestamp', new Date(Date.now() - 30 * 86400000).toISOString()), // last 30 days
     ]);
 
@@ -50,15 +50,14 @@ router.get('/inventory', requireStaff, async (req, res) => {
     const { branch_id } = req.query;
 
     let query = supabaseAdmin
-        .from('inventory')
+        .from('InventoryLog')
         .select(`
-      inventory_id, stock_quantity, reorder_level, updated_at,
-      branches ( name ),
-      medicines ( medicine_id, name, sku, unit_price, category )
+      log_id, quantity, log_date,
+      Product ( product_id, name, product_id, price, Category ( category_id ) )
     `)
-        .order('stock_quantity', { ascending: true });
+        .order('new_stock', { ascending: true });
 
-    if (branch_id) query = query.eq('branch_id', branch_id);
+    // if (branch_id) query = query.eq('branch_id', branch_id);
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
@@ -130,15 +129,26 @@ router.patch('/contacts/:id', requireAdmin, async (req, res) => {
 /* ── CHANGE USER ROLE (admin only) ───────────────────────────────── */
 router.post('/users/:id/role', requireAdmin, async (req, res) => {
     const { role } = req.body;
-    const validRoles = ['customer', 'pharmacist', 'admin'];
+    const validRoles = ['customer', 'pharmacist', 'administrator'];
 
     if (!validRoles.includes(role)) {
         return res.status(400).json({ error: `Role must be one of: ${validRoles.join(', ')}` });
     }
 
+    const { data: roleRecord, error: roleError } = await supabaseAdmin
+        .from('UserRole')
+        .select('role_id')
+        .eq('role_name', role)
+        .single();
+
+    if (roleError) {
+        console.error('Role lookup failed:', roleError);
+        return res.status(500).json({ error: 'Unable to find the requested role.' });
+    }
+
     const { error } = await supabaseAdmin
         .from('Profiles')
-        .update({ role })
+        .update({ role_id: roleRecord.role_id })
         .eq('uuid', req.params.id);
 
     if (error) return res.status(400).json({ error: error.message });
@@ -149,7 +159,7 @@ router.post('/users/:id/role', requireAdmin, async (req, res) => {
 router.get('/users', requireAdmin, async (req, res) => {
     const { data, error } = await supabaseAdmin
         .from('Profiles')
-        .select('uuid, full_name, phone, role, branch_id, created_at');
+        .select('id, full_name, phone, created_at, role');
 
     if (error) return res.status(500).json({ error: error.message });
 
@@ -161,7 +171,11 @@ router.get('/users', requireAdmin, async (req, res) => {
     authUsers.users.forEach(u => { emailMap[u.id] = u.email; });
 
     const merged = (data || []).map(p => ({
-        ...p,
+        id: p.uuid,
+        full_name: p.full_name,
+        phone: p.phone,
+        created_at: p.created_at,
+        role: p.role || 'customer',
         email: emailMap[p.id] || '—',
     }));
 
@@ -169,16 +183,16 @@ router.get('/users', requireAdmin, async (req, res) => {
 });
 
 /* ── BRANCHES LIST (public) ──────────────────────────────────────── */
-router.get('/branches', async (req, res) => {
-    const { data, error } = await supabaseAdmin
-        .from('branches')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+// router.get('/branches', async (req, res) => {
+//     const { data, error } = await supabaseAdmin
+//         .from('branches')
+//         .select('*')
+//         .eq('is_active', true)
+//         .order('name');
 
-    if (error) return res.status(500).json({ error: error.message });
-    return res.json(data);
-});
+//     if (error) return res.status(500).json({ error: error.message });
+//     return res.json(data);
+// });
 
 /* ── CONTACT FORM SUBMIT (public — no auth) ──────────────────────── */
 router.post('/contacts', async (req, res) => {

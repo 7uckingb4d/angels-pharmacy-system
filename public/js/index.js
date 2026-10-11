@@ -1,16 +1,19 @@
 /* ── Redirect if already logged in ── */
-(async () => {
+async function start() {
+    debugger;
     const session = Auth.getSession();
     if (session) {
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get('redirect');
         if (redirect) window.location.replace(redirect);
-        else window.location.replace(session.role === 'admin' ? 'admin.html' : 'homepage.html');
+        else window.location.replace(['administrator', 'pharmacist'].includes(session.role) ? 'admin.html' : 'homepage.html');
     }
     const params = new URLSearchParams(window.location.search);
     if (params.get('signup') === '1') openModal('signup');
     if (params.get('redirect')) openModal('login');
-})();
+}
+
+start();
 
 document.getElementById('yr').textContent = new Date().getFullYear();
 
