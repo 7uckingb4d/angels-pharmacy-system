@@ -223,7 +223,7 @@ BEGIN
         RAISE EXCEPTION 'Order owner must be a customer';
     END IF;
 
-    IF NEW.valid_until IS NOT NULL AND NEW.valid_until <= NEW.order_date THEN
+    IF NEW.valid_until IS NOT NULL AND NEW.valid_until <= NEW.placed_at THEN
         RAISE EXCEPTION 'valid_until must be later than order_date';
     END IF;
 
@@ -270,7 +270,7 @@ CREATE TRIGGER prescription_security_guard
 
 DROP TRIGGER IF EXISTS order_security_guard ON public."Order";
 CREATE TRIGGER order_security_guard
-    BEFORE INSERT OR UPDATE OF customer_id, order_date, valid_until, status ON public."Order"
+    BEFORE INSERT OR UPDATE OF customer_id, placed_at, valid_until, status ON public."Order"
     FOR EACH ROW
     EXECUTE FUNCTION public.enforce_order_security();
 
@@ -297,8 +297,6 @@ GRANT ALL ON FUNCTION public.handle_new_user() TO service_role;
 GRANT ALL ON FUNCTION public.handle_user_updated() TO service_role;
 GRANT ALL ON FUNCTION public.touch_updated_at() TO service_role;
 
-GRANT SELECT ON public."Profiles" TO service_role;
-GRANT SELECT ON public."Product" TO service_role;
 
 -- =====================================================================
 -- 6. PROFILE RLS / POLICY HARDENING

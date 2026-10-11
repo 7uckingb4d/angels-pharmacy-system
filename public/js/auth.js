@@ -133,6 +133,7 @@ const Auth = (() => {
     /* ── GET SESSION (current user) ────────────────────────────────── */
 
     function getSession() {
+        debugger;
         if (!getAccessToken()) return null;
         return getCachedUser();
     }

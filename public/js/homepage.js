@@ -2,7 +2,6 @@
 let _currentUser = null;
 
 async function start() {
-    debugger;
     _currentUser = await Auth.requireAuth();
     if (!_currentUser) return; // requireAuth() redirects if no session
 

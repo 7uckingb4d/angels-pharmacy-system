@@ -50,7 +50,7 @@ export async function requireAdmin(req, res, next) {
 
 export async function requireStaff(req, res, next) {
     await requireAuth(req, res, async () => {
-        if (!['admin', 'pharmacist'].includes(req.profile?.role)) {
+        if (!['administrator', 'pharmacist'].includes(req.profile?.role)) {
             return res.status(403).json({ error: 'Staff access required.' });
         }
         next();

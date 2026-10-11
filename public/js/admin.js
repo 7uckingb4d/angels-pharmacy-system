@@ -6,37 +6,40 @@ let _medicines = [];
 let posCart = [];
 
 /* ── Boot ── */
-(async () => {
+async function start() {
     // Allow both admin and pharmacist (staff) roles
+    debugger;
     _adminUser = await Auth.requireAuth();
     if (!_adminUser) return;
-
-    if (!['admin', 'pharmacist'].includes(_adminUser.role)) {
+    
+    if (!['administrator', 'pharmacist'].includes(_adminUser.role)) {
         window.location.replace('homepage.html');
         return;
     }
-
-    const isAdmin = _adminUser.role === 'admin';
-
+    
+    const isAdmin = _adminUser.role === 'administrator';
+    
     // Hide admin-only elements for staff
     if (!isAdmin) {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
         document.getElementById('topbar-pill').textContent = '💊 Staff Access';
         document.getElementById('panel-role-label').textContent = 'Staff Panel';
     }
-
+    
     const name = _adminUser.full_name || _adminUser.email;
     document.getElementById('admin-avatar').textContent = name.charAt(0).toUpperCase();
     document.getElementById('admin-name').textContent = name;
     document.getElementById('admin-email').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
     document.getElementById('settings-email').textContent = _adminUser.email;
     document.getElementById('settings-role').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
-
+    
     await Promise.all([loadDashboard(), loadBranches()]);
     if (isAdmin) { loadUsers(); loadProducts(); }
     loadPrescriptions();
     loadOrders();
-})();
+}
+
+start();
 
 /* ── DASHBOARD ── */
 async function loadDashboard() {

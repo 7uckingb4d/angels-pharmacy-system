@@ -106,18 +106,18 @@ CREATE TABLE IF NOT EXISTS "Prescription" (
     pharmacist_id UUID REFERENCES "Profiles" (id) ON DELETE SET NULL,
     prescription_file TEXT NOT NULL CHECK (btrim(prescription_file) <> ''),
     status prescription_status NOT NULL DEFAULT 'pending',
-    upload_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (status <> 'verified' OR pharmacist_id IS NOT NULL)
 );
 
 CREATE TABLE IF NOT EXISTS "Order" (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES "Profiles" (id) ON DELETE RESTRICT,
-    order_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    placed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status order_status NOT NULL DEFAULT 'pending',
     valid_until TIMESTAMPTZ,
     total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
-    CHECK (valid_until IS NULL OR valid_until > order_date)
+    CHECK (valid_until IS NULL OR valid_until > placed_at)
 );
 
 CREATE TABLE IF NOT EXISTS "OrderItem" (

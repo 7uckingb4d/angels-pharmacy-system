@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
             id: data.user.id,
             email: data.user.email,
             ...profileDetails,
-            role: role?.role_name || 'customer',
+            role: role,
         },
     });
 });
@@ -122,7 +122,7 @@ router.get('/me', requireAuth, async (req, res) => {
         uuid: req.user.id,
         email: req.user.email,
         ...profileDetails,
-        role: role?.role_name || 'customer',
+        role: role,
     });
 });
 

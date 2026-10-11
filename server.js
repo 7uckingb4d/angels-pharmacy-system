@@ -42,18 +42,18 @@ const HOSTNAME = 'localhost';
 // }));
 
 // Global rate limit — 200 requests per 15 minutes per IP
-app.use(rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
-    message: { error: 'Too many requests. Please try again later.' },
-}));
+// app.use(rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     max: 200,
+//     message: { error: 'Too many requests. Please try again later.' },
+// }));
 
 // Stricter limit on auth endpoints
-app.use('/api/auth', rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: { error: 'Too many auth attempts. Please wait 15 minutes.' },
-}));
+// app.use('/api/auth', rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     max: 20,
+//     message: { error: 'Too many auth attempts. Please wait 15 minutes.' },
+// }));
 
 app.use(express.json({ limit: '1mb' }));
 // app.use(express.urlencoded({ extended: true }));
@@ -78,6 +78,7 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res, next) => {
+    debugger;
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, '/public/index.html'));
 });

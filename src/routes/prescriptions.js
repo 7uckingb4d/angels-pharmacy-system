@@ -64,7 +64,7 @@ router.post('/', requireAuth, upload.single('prescription'), async (req, res) =>
 router.get('/', requireAuth, async (req, res) => {
     const { data, error } = await supabaseAdmin
         .from('Prescription')
-        .select('prescription_id, file_name, status, uploaded_at, reviewed_at, rejection_reason, branches(name)')
+        .select('prescription_id, status, uploaded_at')
         .eq('user_id', req.user.id)
         .order('uploaded_at', { ascending: false });
 
@@ -77,8 +77,7 @@ router.get('/pending', requireStaff, async (req, res) => {
     const { data, error } = await supabaseAdmin
         .from('Prescription')
         .select(`
-      prescription_id, file_name, file_path, status, uploaded_at, user_id,
-      branches ( name )
+      prescription_id, status, uploaded_at, customer_id
     `)
         .eq('status', 'pending')
         .order('uploaded_at', { ascending: true });  // oldest first

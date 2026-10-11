@@ -171,16 +171,14 @@ router.get('/admin/all', requireStaff, async (req, res) => {
     const { status, branch_id } = req.query;
 
     let query = supabaseAdmin
-        .from('orders')
+        .from('Order')
         .select(`
-      order_id, status, total_amount, placed_at, ready_at, user_id,
-      branches ( name ),
-      order_items ( quantity, medicines ( name ) )
+      order_id, status, total_amount, placed_at, customer_id,
+      OrderItem ( quantity, Product ( name ) )
     `)
         .order('placed_at', { ascending: false });
 
     if (status) query = query.eq('status', status);
-    if (branch_id) query = query.eq('branch_id', branch_id);
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
