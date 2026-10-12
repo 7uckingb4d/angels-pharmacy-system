@@ -1,6 +1,6 @@
 /* ── Redirect if already logged in ── */
 async function start() {
-    debugger;
+    
     const session = Auth.getSession();
     if (session) {
         const params = new URLSearchParams(window.location.search);

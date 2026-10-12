@@ -5,34 +5,69 @@ let _branches = [];
 let _medicines = [];
 let posCart = [];
 
+function setupProductImagePreview() {
+    const input = document.getElementById('edit-image');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const uploadPreview = document.getElementById('upload-preview');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const previewTime = document.getElementById('preview-time');
+    let previewUrl = null;
+
+    input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+        previewName.textContent = file.name;
+        previewTime.textContent = new Date().toLocaleString('en-PH');
+
+        if (file.type.startsWith('image/')) {
+            previewUrl = URL.createObjectURL(file);
+            previewImg.src = previewUrl;
+            previewImg.alt = file.name;
+            previewImg.style.display = '';
+        } else {
+            previewImg.removeAttribute('src');
+            previewImg.style.display = 'none';
+        }
+
+        uploadPrompt.style.display = 'none';
+        uploadPreview.style.display = 'flex';
+    });
+}
+
+setupProductImagePreview();
+
 /* ── Boot ── */
 async function start() {
     // Allow both admin and pharmacist (staff) roles
-    debugger;
+
     _adminUser = await Auth.requireAuth();
     if (!_adminUser) return;
-    
+
     if (!['administrator', 'pharmacist'].includes(_adminUser.role)) {
         window.location.replace('homepage.html');
         return;
     }
-    
+
     const isAdmin = _adminUser.role === 'administrator';
-    
+
     // Hide admin-only elements for staff
     if (!isAdmin) {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
         document.getElementById('topbar-pill').textContent = '💊 Staff Access';
         document.getElementById('panel-role-label').textContent = 'Staff Panel';
     }
-    
+
     const name = _adminUser.full_name || _adminUser.email;
     document.getElementById('admin-avatar').textContent = name.charAt(0).toUpperCase();
     document.getElementById('admin-name').textContent = name;
     document.getElementById('admin-email').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
     document.getElementById('settings-email').textContent = _adminUser.email;
     document.getElementById('settings-role').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
-    
+
     await Promise.all([loadDashboard(), loadBranches()]);
     if (isAdmin) { loadUsers(); loadProducts(); }
     loadPrescriptions();
@@ -44,7 +79,7 @@ start();
 /* ── DASHBOARD ── */
 async function loadDashboard() {
     try {
-        const res = await Auth.fetch(`${API}/admin/dashboard`);
+        const res = await Auth.fetch(`/admin/dashboard`);
         const data = await res.json();
         if (!res.ok) return;
         const orders = data.orders || {};
@@ -56,7 +91,7 @@ async function loadDashboard() {
     } catch { }
 
     try {
-        const res = await Auth.fetch(`${API}/orders/admin/all`);
+        const res = await Auth.fetch(`/orders/admin/all`);
         const data = await res.json();
         if (!res.ok || !data.length) {
             document.getElementById('activity-feed').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">No recent activity.</div>';
@@ -77,7 +112,7 @@ async function loadDashboard() {
 /* ── BRANCHES ── */
 async function loadBranches() {
     try {
-        const res = await Auth.fetch(`${API}/admin/inventory`);
+        const res = await Auth.fetch(`/admin/inventory`);
         const data = await res.json();
         if (res.ok && data.length) {
             const seen = new Set();
@@ -89,7 +124,7 @@ async function loadBranches() {
 
     if (!_branches.length) {
         try {
-            const res = await Auth.fetch(`${API}/admin/branches`);
+            const res = await Auth.fetch(`/admin/branches`);
             const data = await res.json();
             if (res.ok && data.length) {
                 _branches = data.map(b => ({ id: b.branch_id, name: b.name, address: b.address, city: b.city }));
@@ -192,7 +227,7 @@ async function changeUserRole(userId, role) {
 /* ── PRODUCTS ── */
 async function loadProducts() {
     try {
-        const res = await Auth.fetch(`${API}/medicines`);
+        const res = await Auth.fetch(`/medicines`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
@@ -224,7 +259,7 @@ async function loadProducts() {
 
 async function deactivateProduct(id, name) {
     if (!confirm(`Deactivate "${name}"? It will no longer appear in the catalogue.`)) return;
-    const res = await Auth.fetch(`${API}/medicines/${id}`, { method: 'DELETE' });
+    const res = await Auth.fetch(`/medicines/${id}`, { method: 'DELETE' });
     if (res.ok) { showToast('Product deactivated.'); loadProducts(); }
     else { const d = await res.json(); showToast('⚠ ' + d.error); }
 }
@@ -232,7 +267,7 @@ async function deactivateProduct(id, name) {
 /* ── PRESCRIPTIONS ── */
 async function loadPrescriptions() {
     try {
-        const res = await Auth.fetch(`${API}/prescriptions/pending`);
+        const res = await Auth.fetch(`/prescriptions/pending`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
@@ -265,7 +300,7 @@ async function loadPrescriptions() {
 }
 
 async function viewRxFile(id) {
-    const res = await Auth.fetch(`${API}/prescriptions/${id}/file`);
+    const res = await Auth.fetch(`/prescriptions/${id}/file`);
     const data = await res.json();
     if (res.ok) window.open(data.url, '_blank');
     else showToast('⚠ Could not load file.');
@@ -273,7 +308,7 @@ async function viewRxFile(id) {
 
 async function approveRx(id) {
     if (!confirm('Approve this prescription?')) return;
-    const res = await Auth.fetch(`${API}/prescriptions/${id}`, {
+    const res = await Auth.fetch(`/prescriptions/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'verified' }),
     });
@@ -284,7 +319,7 @@ async function approveRx(id) {
 async function rejectRx(id) {
     const reason = prompt('Reason for rejection:');
     if (!reason) return;
-    const res = await Auth.fetch(`${API}/prescriptions/${id}`, {
+    const res = await Auth.fetch(`/prescriptions/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'rejected', rejection_reason: reason }),
     });
@@ -296,7 +331,7 @@ async function rejectRx(id) {
 async function loadOrders() {
     const status = document.getElementById('order-status-filter')?.value || '';
     try {
-        let url = `${API}/orders/admin/all`;
+        let url = `/orders/admin/all`;
         if (status) url += `?status=${status}`;
         const res = await Auth.fetch(url);
         const data = await res.json();
@@ -330,7 +365,7 @@ async function loadOrders() {
 }
 
 async function updateOrderStatus(id, status) {
-    const res = await Auth.fetch(`${API}/orders/${id}/status`, {
+    const res = await Auth.fetch(`/orders/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     });
@@ -422,14 +457,14 @@ async function processSale() {
 
     try {
         const items = posCart.map(i => ({ medicine_id: i.id, quantity: i.qty }));
-        const res = await Auth.fetch(`${API}/orders`, {
+        const res = await Auth.fetch(`/orders`, {
             method: 'POST',
             body: JSON.stringify({ branch_id: branchId, items, notes: 'POS walk-in sale · Payment at pick-up' }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
-        await Auth.fetch(`${API}/orders/${data.order_id}/status`, {
+        await Auth.fetch(`/orders/${data.order_id}/status`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'completed' }),
         });
@@ -469,12 +504,12 @@ function printReceipt() { window.print(); }
 
 /* ── EDIT PRODUCT MODAL ── */
 function openAddProductModal() {
+    document.getElementById('edit-title').textContent = 'Add New Product';
     document.getElementById('edit-id').value = '';
     document.getElementById('edit-name').value = '';
     document.getElementById('edit-price').value = '';
-    document.getElementById('edit-rx').value = 'false';
+    document.getElementById('edit-rx-otc').value = 'false';
     document.getElementById('edit-sameday').value = 'true';
-    document.getElementById('edit-title').textContent = 'Add New Product';
     document.getElementById('edit-overlay').classList.add('open');
 }
 
@@ -491,25 +526,48 @@ function openEditModal(id) {
 }
 
 function closeEditModal() { document.getElementById('edit-overlay').classList.remove('open'); }
-function handleEditOverlay(e) { if (e.target === document.getElementById('edit-overlay')) closeEditModal(); }
+function handleEditOverlay(e) {
+    // if (e.target === document.getElementById('edit-overlay')) closeEditModal();
+}
 
 async function saveEdit() {
     const id = document.getElementById('edit-id').value;
-    const body = {
-        name: document.getElementById('edit-name').value.trim(),
-        unit_price: parseFloat(document.getElementById('edit-price').value),
-        requires_rx: document.getElementById('edit-rx').value === 'true',
-        same_day_available: document.getElementById('edit-sameday').value === 'true',
-    };
+    const fileInput = document.getElementById('edit-image');
+    const file = fileInput.files && fileInput.files[0];
+    if (!id && !file) {
+        showToast('⚠ Select a product image before creating the product.');
+        return;
+    }
 
-    if (id) {
-        const res = await Auth.fetch(`${API}/medicines/${id}`, { method: 'PUT', body: JSON.stringify(body) });
-        if (res.ok) { showToast('✓ Product updated.'); closeEditModal(); loadProducts(); }
-        else { const d = await res.json(); showToast('⚠ ' + d.error); }
-    } else {
-        const res = await Auth.fetch(`${API}/medicines`, { method: 'POST', body: JSON.stringify(body) });
-        if (res.ok) { showToast('✓ Product added.'); closeEditModal(); loadProducts(); }
-        else { const d = await res.json(); showToast('⚠ ' + d.error); }
+    const fields = {
+        name: document.getElementById('edit-name').value.trim(),
+        brand: document.getElementById('edit-brand').value.trim(),
+        category_id: document.getElementById('edit-category').value.trim(),
+        price: document.getElementById('edit-price').value,
+        requires_rx: document.getElementById('edit-rx-otc').value,
+        dosage_form: document.getElementById('edit-dosage-form').value.trim(),
+        same_day: document.getElementById('edit-sameday').value,
+        stock_qty: document.getElementById('edit-stock-qty').value || '0',
+        description: document.getElementById('edit-description').value.trim(),
+    };
+    const formData = new FormData();
+    Object.entries(fields).forEach(([name, value]) => formData.append(name, value));
+    if (file) formData.append('image', file);
+
+    try {
+        const path = id ? `/medicines/${id}` : '/medicines';
+        const res = await Auth.fetch(path, {
+            method: id ? 'PUT' : 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to save product.');
+
+        showToast(id ? '✓ Product updated.' : '✓ Product added.');
+        closeEditModal();
+        loadProducts();
+    } catch (error) {
+        showToast(`⚠ ${error.message || 'Unable to save product.'}`);
     }
 }
 
