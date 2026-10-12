@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 
 /* -- SERVER CONFIGURATION -------------------------------------------------- */
 const app = express();
-app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const HOSTNAME = 'localhost';
+app.set('trust proxy', 1);
 
 /* -- SECURITY MIDDLEWARE --------------------------------------------------- */
 // app.use(helmet({
@@ -76,9 +76,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { index: false }));
 
 app.get('/', (req, res, next) => {
-    debugger;
+
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, '/public/index.html'));
 });
