@@ -22,3 +22,18 @@ npm install supabase@2.120.0
 You will need to install the **Supabase CLI** to your machine to allow concrete development of the system's database.
 Refer to their [official documentation](https://supabase.com/docs/guides/local-development) for installation. You will
 also need to install a container engine such as Docker or Podman, however **Docker** is strongly recommended.
+
+## Starting the local server
+To run the local server in the local development environment, follow these instructions:
+
+1. Start Docker and run the following command at the root folder of the repository:
+```
+npx supabase start
+```
+
+2. Start Node.js run configuration via:
+```
+npm run debug
+```
+
+3. Open the website at `localhost:3000`.
