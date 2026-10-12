@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
     if (search) query = query.ilike('name', `%${search}%`);
     if (category) query = query.eq('category', category);
     if (requires_rx !== undefined) query = query.eq('requires_rx', requires_rx === 'true');
-    if (same_day !== undefined) query = query.eq('same_day_', same_day === 'true');
+    if (same_day !== undefined) query = query.eq('same_day', same_day === 'true');
 
     const { data, error } = await query;
     if (error) {
@@ -93,7 +93,7 @@ router.post('/', requireAdmin, uploadProductImage, async (req, res) => {
             dosage_form,
             price: numericPrice,
             stock_quantity: stockQuantity,
-            is_active: false,
+            is_active: true,
             img_path: `/uploads/previews/${req.file.filename}`,
         })
         .select()

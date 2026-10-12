@@ -226,6 +226,7 @@ async function changeUserRole(userId, role) {
 
 /* ── PRODUCTS ── */
 async function loadProducts() {
+    debugger;
     try {
         const res = await Auth.fetch(`/medicines`);
         const data = await res.json();
@@ -238,14 +239,17 @@ async function loadProducts() {
         tbody.innerHTML = data.map(p => `
       <tr>
         <td><strong>${esc(p.name)}</strong></td>
-        <td>₱${parseFloat(p.unit_price).toFixed(2)}</td>
+        <td>₱${Number.parseFloat(p.price).toFixed(2)}</td>
+        <td>${esc(p.dosage_form)}</td>
+        <td>${esc(p.brand)}</td>
+        <td class="muted">${esc(p.category_id || '—')}</td>
         <td>${p.requires_rx ? '<span class="status-pill pending">Rx</span>' : '<span class="status-pill verified">OTC</span>'}</td>
-        <td>${p.same_day_available ? '✅ Yes' : '⏳ No'}</td>
-        <td class="muted">${esc(p.category || '—')}</td>
+        <td>${p.same_day ? '✅ Yes' : '⏳ No'}</td>
         <td>${p.is_active ? '<span class="status-pill active">Active</span>' : '<span class="status-pill inactive">Inactive</span>'}</td>
+        <td>${Number.parseInt(p.stock_quantity)}</td>
         <td>
-          <button class="row-action" onclick="openEditModal('${p.medicine_id}')">Edit</button>
-          <button class="row-action danger" onclick="deactivateProduct('${p.medicine_id}', '${esc(p.name)}')">Remove</button>
+          <button class="row-action" onclick="openEditModal('${p.product_id}')">Edit</button>
+          <button class="row-action danger" onclick="deactivateProduct('${p.product_id}', '${esc(p.name)}')">Remove</button>
         </td>
       </tr>
     `).join('');
