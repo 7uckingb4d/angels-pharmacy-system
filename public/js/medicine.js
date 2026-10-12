@@ -70,8 +70,8 @@ async function loadMedicine() {
 }
 
 function renderDetail(med) {
-    const img = med.image_url
-        ? `<img class="detail-img" src="${med.image_url}" alt="${esc(med.name)}" onerror="this.parentElement.innerHTML='<div class=detail-img-placeholder>💊</div>'" />`
+    const img = med.img_path
+        ? `<img class="detail-img" src="${med.img_path}" alt="${esc(med.name)}" onerror="this.parentElement.innerHTML='<div class=detail-img-placeholder>💊</div>'" />`
         : `<div class="detail-img-placeholder">💊</div>`;
 
     const typeBadge = med.requires_rx
@@ -101,7 +101,7 @@ function renderDetail(med) {
           </div>
           <h1 class="detail-name">${esc(med.name)}</h1>
           ${med.sku ? `<div class="detail-sku">SKU: ${esc(med.sku)}</div>` : ''}
-          <div class="detail-price">₱${parseFloat(med.unit_price).toFixed(2)}</div>
+          <div class="detail-price">₱${parseFloat(med.price).toFixed(2)}</div>
           ${rxNotice}
           <div class="detail-actions" style="margin-top:${med.requires_rx ? '16px' : '0'};">
             <button class="btn" onclick="handleAddToCart()">🛒 Add to Cart</button>
@@ -135,7 +135,7 @@ function renderDetail(med) {
           </div>` : ''}
           <div class="detail-row">
             <span class="label">Price</span>
-            <span class="value" style="color:var(--red);font-size:15px;">₱${parseFloat(med.unit_price).toFixed(2)}</span>
+            <span class="value" style="color:var(--red);font-size:15px;">₱${parseFloat(med.price).toFixed(2)}</span>
           </div>
         </div>
 
@@ -171,9 +171,9 @@ function handleAddToCart() {
         sessionStorage.setItem('ap_redirect_after_login', currentPage);
         if (_medicine) {
             sessionStorage.setItem('ap_pending_cart', JSON.stringify({
-                id: _medicine.medicine_id,
+                id: _medicine.product_id,
                 name: _medicine.name,
-                price: _medicine.unit_price,
+                price: _medicine.price,
                 requiresRx: _medicine.requires_rx,
             }));
         }

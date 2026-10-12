@@ -13,14 +13,14 @@ const router = Router();
 /* ── PLACE ORDER ─────────────────────────────────────────────────── */
 router.post('/', requireAuth, async (req, res) => {
     const { /*branch_id,*/ items, prescription_id, notes } = req.body;
-    // items: [{ medicine_id, quantity }]
+    // items: [{ product_id, quantity }]
 
     if (branch_id || !items || items.length === 0) {
         return res.status(400).json({ error: 'branch_id and items are required.' });
     }
 
     // Fetch medicine prices from DB (never trust client-sent prices)
-    const medicineIds = items.map(i => i.medicine_id);
+    const medicineIds = items.map(i => i.product_id);
     const { data: medicines, error: medErr } = await supabaseAdmin
         .from('Product')
         .select('product_id, price, is_active')
@@ -30,27 +30,27 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Validate all medicines exist and are active
     for (const item of items) {
-        const med = medicines.find(m => m.medicine_id === item.medicine_id);
+        const med = medicines.find(m => m.product_id === item.product_id);
         if (!med || !med.is_active) {
-            return res.status(400).json({ error: `Medicine ${item.medicine_id} is unavailable.` });
+            return res.status(400).json({ error: `Medicine ${item.product_id} is unavailable.` });
         }
         // If any item requires Rx, a prescription must be provided
         // if (med.requires_rx && !prescription_id) {
         //     return res.status(400).json({
-        //         error: `${med.name || item.medicine_id} requires a verified prescription.`
+        //         error: `${med.name || item.product_id} requires a verified prescription.`
         //     });
         // }
     }
 
     // Calculate total
     const total_amount = items.reduce((sum, item) => {
-        const med = medicines.find(m => m.medicine_id === item.medicine_id);
-        return sum + (med.unit_price * item.quantity);
+        const med = medicines.find(m => m.product_id === item.product_id);
+        return sum + (med.price * item.quantity);
     }, 0);
 
     // Create the order
     const { data: order, error: orderErr } = await supabaseAdmin
-        .from('orders')
+        .from('Order')
         .insert({
             user_id: req.user.id,
             branch_id,
@@ -66,12 +66,12 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Insert order items
     const orderItems = items.map(item => {
-        const med = medicines.find(m => m.medicine_id === item.medicine_id);
+        const med = medicines.find(m => m.product_id === item.product_id);
         return {
             order_id: order.order_id,
-            medicine_id: item.medicine_id,
+            product_id: item.product_id,
             quantity: item.quantity,
-            unit_price: med.unit_price,
+            unit_price: med.price,
         };
     });
 
@@ -148,16 +148,16 @@ router.patch('/:id/status', requireStaff, async (req, res) => {
     if (status === 'completed') {
         const { data: items } = await supabaseAdmin
             .from('order_items')
-            .select('medicine_id, quantity, unit_price')
+            .select('product_id, quantity, unit_price')
             .eq('order_id', req.params.id);
 
         if (items) {
             const salesRows = items.map(item => ({
                 order_id: req.params.id,
                 branch_id: data.branch_id,
-                medicine_id: item.medicine_id,
+                product_id: item.product_id,
                 quantity: item.quantity,
-                unit_price: item.unit_price,
+                unit_price: item.price,
             }));
             await supabaseAdmin.from('sales').insert(salesRows);
         }

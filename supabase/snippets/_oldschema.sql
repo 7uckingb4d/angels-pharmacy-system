@@ -68,7 +68,7 @@ CREATE TRIGGER profiles_updated_at
     FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
  
 CREATE TABLE IF NOT EXISTS medicines (
-    medicine_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name                VARCHAR(150) NOT NULL,
     sku                 VARCHAR(50) UNIQUE,
     unit_price          NUMERIC(10,2) NOT NULL CHECK (unit_price >= 0),
@@ -90,11 +90,11 @@ CREATE TRIGGER medicines_updated_at
 CREATE TABLE IF NOT EXISTS inventory (
     inventory_id    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     branch_id       UUID NOT NULL REFERENCES branches (branch_id) ON DELETE CASCADE,
-    medicine_id     UUID NOT NULL REFERENCES medicines (medicine_id) ON DELETE CASCADE,
+    product_id     UUID NOT NULL REFERENCES medicines (product_id) ON DELETE CASCADE,
     stock_quantity  INT NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
     reorder_level   INT NOT NULL DEFAULT 10,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (branch_id, medicine_id)
+    UNIQUE (branch_id, product_id)
 );
  
 CREATE TRIGGER inventory_updated_at
@@ -105,7 +105,7 @@ CREATE TRIGGER inventory_updated_at
 CREATE TABLE IF NOT EXISTS restock_orders (
     restock_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     branch_id       UUID NOT NULL REFERENCES branches (branch_id) ON DELETE CASCADE,
-    medicine_id     UUID NOT NULL REFERENCES medicines (medicine_id) ON DELETE CASCADE,
+    product_id     UUID NOT NULL REFERENCES medicines (product_id) ON DELETE CASCADE,
     quantity        INT NOT NULL CHECK (quantity > 0),
     status          restock_status NOT NULL DEFAULT 'ordered',
     ordered_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
     item_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id        UUID NOT NULL REFERENCES orders (order_id) ON DELETE CASCADE,
-    medicine_id     UUID NOT NULL REFERENCES medicines (medicine_id),
+    product_id     UUID NOT NULL REFERENCES medicines (product_id),
     quantity        INT NOT NULL CHECK (quantity > 0),
     unit_price      NUMERIC(10,2) NOT NULL CHECK (unit_price >= 0),  -- snapshot at order time
     subtotal        NUMERIC(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
@@ -140,12 +140,12 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE TABLE IF NOT EXISTS refill_reminders (
     reminder_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
-    medicine_id     UUID NOT NULL REFERENCES medicines (medicine_id) ON DELETE CASCADE,
+    product_id     UUID NOT NULL REFERENCES medicines (product_id) ON DELETE CASCADE,
     last_refill     DATE,
     remind_every_days INT DEFAULT 30,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (user_id, medicine_id)
+    UNIQUE (user_id, product_id)
 );
  
  
@@ -184,14 +184,14 @@ CREATE TABLE IF NOT EXISTS sales (
     sale_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id        UUID NOT NULL REFERENCES orders (order_id) ON DELETE CASCADE,
     branch_id       UUID NOT NULL REFERENCES branches (branch_id),
-    medicine_id     UUID NOT NULL REFERENCES medicines (medicine_id),
+    product_id     UUID NOT NULL REFERENCES medicines (product_id),
     quantity        INT NOT NULL,
     unit_price      NUMERIC(10,2) NOT NULL,
     sale_timestamp  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
  
 CREATE INDEX idx_sales_branch      ON sales (branch_id);
-CREATE INDEX idx_sales_medicine    ON sales (medicine_id);
+CREATE INDEX idx_sales_medicine    ON sales (product_id);
 CREATE INDEX idx_sales_timestamp   ON sales (sale_timestamp DESC);
  
 -- ETL run logs

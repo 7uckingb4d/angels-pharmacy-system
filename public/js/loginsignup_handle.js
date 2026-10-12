@@ -1,6 +1,6 @@
 /* ── Login ── */
 async function handleLogin() {
-    debugger;
+    
     clearAuthMessages();
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-pass').value;

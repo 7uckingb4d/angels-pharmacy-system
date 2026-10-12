@@ -13,7 +13,7 @@ const Auth = (() => {
     function getRefreshToken() { return localStorage.getItem(REFRESH_KEY); }
 
     function saveTokens(access_token, refresh_token) {
-        debugger;
+
         sessionStorage.setItem(ACCESS_KEY, access_token);
         if (refresh_token) localStorage.setItem(REFRESH_KEY, refresh_token);
     }
@@ -39,17 +39,32 @@ const Auth = (() => {
 
     async function apiFetch(path, options = {}) {
         const token = getAccessToken();
-        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        const requestOptions = { ...options };
+        const headers = { ...(options.headers || {}) };
+        const isFormData = typeof FormData !== 'undefined' && requestOptions.body instanceof FormData;
+
+        if (isFormData) {
+            Object.keys(headers)
+                .filter(name => name.toLowerCase() === 'content-type')
+                .forEach(name => delete headers[name]);
+        } else if (requestOptions.body !== undefined) {
+            if (typeof requestOptions.body !== 'string') {
+                requestOptions.body = JSON.stringify(requestOptions.body);
+            }
+            if (!Object.keys(headers).some(name => name.toLowerCase() === 'content-type')) {
+                headers['Content-Type'] = 'application/json';
+            }
+        }
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const res = await fetch(`${API}${path}`, { ...options, headers });
+        const res = await fetch(`${API}${path}`, { ...requestOptions, headers });
 
         // Token expired — try refreshing once
         if (res.status === 401) {
             const refreshed = await tryRefresh();
             if (refreshed) {
                 headers['Authorization'] = `Bearer ${getAccessToken()}`;
-                return fetch(`${API}${path}`, { ...options, headers });
+                return fetch(`${API}${path}`, { ...requestOptions, headers });
             }
         }
 
@@ -133,7 +148,7 @@ const Auth = (() => {
     /* ── GET SESSION (current user) ────────────────────────────────── */
 
     function getSession() {
-        debugger;
+
         if (!getAccessToken()) return null;
         return getCachedUser();
     }

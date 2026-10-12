@@ -190,9 +190,6 @@
                                 <div class="pos-empty">No items added yet.<br>Click a product to add it.</div>
                             </div>
                             <div class="pos-cart-footer">
-                                <select class="pos-branch-select" id="pos-branch">
-                                    <option value="">Select branch…</option>
-                                </select>
                                 <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">💡 Payment will be
                                     collected at
                                     pick-up.</div>
@@ -251,10 +248,13 @@
                                 <tr>
                                     <th>Product Name</th>
                                     <th>Price (₱)</th>
-                                    <th>Type</th>
-                                    <th>Same-day</th>
+                                    <th>Dosage Form</th>
+                                    <th>Brand</th>
                                     <th>Category</th>
+                                    <th>OTC / RX</th>
+                                    <th>Same-day Available?</th>
                                     <th>Status</th>
+                                    <th>Stock Qty.</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -401,30 +401,91 @@
         <div class="edit-modal">
             <button class="edit-close" onclick="closeEditModal()">✕</button>
             <h3 id="edit-title">Edit Product</h3>
-            <input type="hidden" id="edit-id" />
-            <div class="form-group"><label>Product Name</label><input type="text" id="edit-name" /></div>
-            <div class="form-group"><label>Price (₱)</label><input type="number" id="edit-price" step="0.01" min="0" />
-            </div>
-            <div class="form-group">
-                <label>Type</label>
-                <select id="edit-rx"
-                    style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-family:inherit;font-size:14px;background:var(--off-white);color:var(--text);">
-                    <option value="true">Rx (Prescription Required)</option>
-                    <option value="false">OTC (Over the Counter)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Same-day Availability</label>
-                <select id="edit-sameday"
-                    style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-family:inherit;font-size:14px;background:var(--off-white);color:var(--text);">
-                    <option value="true">Yes — Same Day</option>
-                    <option value="false">No — Next Day</option>
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-ghost" onclick="closeEditModal()">Cancel</button>
-                <button class="btn" onclick="saveEdit()">Save Changes</button>
-            </div>
+            <form class="edit-form" onsubmit="event.preventDefault(); saveEdit()">
+                <input type="hidden" id="edit-id" />
+                <div class="edit-fields">
+                    <div class="form-group">
+                        <label for="edit-name">Product Name</label>
+                        <input type="text" id="edit-name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-brand">Brand</label>
+                        <input type="text" id="edit-brand" />
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-category">Category</label>
+                        <select id="edit-category" required>
+                            <option value="">Loading categories…</option>
+                        </select>
+                        <input type="text" id="edit-new-category" maxlength="100"
+                            placeholder="Enter a new category name" aria-label="New category name"
+                            style="display:none;margin-top:8px;" />
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-price">Unit Price (₱)</label>
+                        <input type="number" id="edit-price" step="0.01" min="0" />
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-rx-otc">Rx / OTC</label>
+                        <select id="edit-rx-otc">
+                            <option value="true">Rx (Prescription Required)</option>
+                            <option value="false">OTC (Over the Counter)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-dosage-form">Dosage Form</label>
+                        <input type="text" id="edit-dosage-form" />
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-sameday">Same-day Availability</label>
+                        <select id="edit-sameday">
+                            <option value="true">Yes — Same Day</option>
+                            <option value="false">No — Next Day</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-stock-qty">Stock Quantity</label>
+                        <input type="number" id="edit-stock-qty" />
+                    </div>
+                </div>
+                <div class="edit-media">
+                    <div class="form-group edit-description">
+                        <label for="edit-description">Description</label>
+                        <textarea id="edit-description"></textarea>
+                    </div>
+                    <div class="form-group edit-upload">
+                        <label for="edit-image">Product Preview</label>
+                        <label class="upload-area" id="upload-area" for="edit-image">
+                            <div id="upload-prompt" class="upload-prompt">
+                                <div class="upload-icon">📄</div>
+                                <div class="upload-instruction">Drag &amp; drop or click to upload</div>
+                                <div class="muted">Photo or PDF • Use good lighting</div>
+                                <button class="btn" style="margin-top:12px;" type="button"
+                                    onclick="event.preventDefault(); document.getElementById('edit-image').click()">Browse
+                                    File</button>
+                            </div>
+                            <div id="upload-preview" class="upload-preview">
+                                <img id="preview-img" class="file-preview" alt="Product preview" />
+                                <div>
+                                    <div id="preview-name" class="upload-preview-name"></div>
+                                    <div class="muted" id="preview-time" style="margin-top:3px;"></div>
+                                    <div class="upload-preview-actions">
+                                        <button class="btn-ghost" type="button"
+                                            onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('edit-image').click()">Change
+                                            file</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <input id="edit-image" type="file" accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                            aria-label="Upload product preview" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-ghost" type="button" onclick="closeEditModal()">Cancel</button>
+                    <button class="btn" type="submit">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 

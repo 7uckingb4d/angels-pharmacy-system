@@ -103,11 +103,6 @@ function setupUpload() {
         requestBtn.textContent = "Requesting…";
 
         try {
-            const branchMap = {
-                punturin: "12a814e2-f9b9-42a7-87a1-f5a66bfc5904",
-                malinta: "850afc97-c7d3-4cc9-b119-deedb07fd1ac"
-            };
-
             const formData = new FormData();
             formData.append("prescription", file);
             /*formData.append("branch_id", branchMap[state.selectedBranch || "punturin"]);*/
@@ -571,7 +566,7 @@ async function placeOrder() {
                 /*branch_id: branchMap[branch] || branch,*/
                 prescription_id,
                 items: state.cart.map(i => ({
-                    medicine_id: i.id,
+                    product_id: i.id,
                     quantity: i.qty,
                     unit_price: i.price,
                 })),
