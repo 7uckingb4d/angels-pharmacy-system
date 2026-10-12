@@ -2,7 +2,8 @@ const API = '';
 
 let _adminUser = null;
 let _branches = [];
-let _medicines = [];
+let _products = [];
+let _categories = [];
 let posCart = [];
 
 function setupProductImagePreview() {
@@ -69,7 +70,10 @@ async function start() {
     document.getElementById('settings-role').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
 
     await Promise.all([loadDashboard(), loadBranches()]);
-    if (isAdmin) { loadUsers(); loadProducts(); }
+    if (isAdmin) {
+        loadUsers();
+        await Promise.all([loadProducts(), loadCategories()]);
+    }
     loadPrescriptions();
     loadOrders();
 }
@@ -132,7 +136,7 @@ async function loadBranches() {
         } catch { }
     }
 
-    renderBranchSelect();
+    // renderBranchSelect();
     renderBranchesPanel();
 }
 
@@ -224,35 +228,73 @@ async function changeUserRole(userId, role) {
     else { const d = await res.json(); showToast('⚠ ' + d.error); }
 }
 
+/* ── CATEGORIES ── */
+async function loadCategories() {
+    try {
+        const res = await Auth.fetch(`/admin/categories`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        _categories = data;
+        populateCategoryOptions(document.getElementById('edit-category').value);
+    } catch (err) {
+        const select = document.getElementById('edit-category');
+        select.replaceChildren(new Option('Unable to load categories', ''));
+        select.add(new Option('＋ Add a new category…', '__new__'));
+        showToast(`⚠ ${err.message || 'Unable to load categories.'}`);
+    }
+}
+
+function populateCategoryOptions(selectedId = '') {
+    const select = document.getElementById('edit-category');
+    select.replaceChildren(new Option('Select a category', ''));
+    _categories.forEach(category => {
+        select.add(new Option(category.category_name, category.category_id));
+    });
+    select.add(new Option('＋ Add a new category…', '__new__'));
+    select.value = selectedId;
+    updateNewCategoryInput();
+}
+
+function updateNewCategoryInput() {
+    const select = document.getElementById('edit-category');
+    const input = document.getElementById('edit-new-category');
+    const isCustomCategory = select.value === '__new__';
+    input.style.display = isCustomCategory ? '' : 'none';
+    input.required = isCustomCategory;
+    if (!isCustomCategory) input.value = '';
+}
+
+document.getElementById('edit-category').addEventListener('change', updateNewCategoryInput);
+
 /* ── PRODUCTS ── */
 async function loadProducts() {
-    debugger;
     try {
         const res = await Auth.fetch(`/medicines`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
-        _medicines = data;
+        _products = data;
         document.getElementById('stat-products').textContent = data.length;
 
         const tbody = document.getElementById('products-tbody');
         tbody.innerHTML = data.map(p => `
-      <tr>
-        <td><strong>${esc(p.name)}</strong></td>
-        <td>₱${Number.parseFloat(p.price).toFixed(2)}</td>
-        <td>${esc(p.dosage_form)}</td>
-        <td>${esc(p.brand)}</td>
-        <td class="muted">${esc(p.category_id || '—')}</td>
-        <td>${p.requires_rx ? '<span class="status-pill pending">Rx</span>' : '<span class="status-pill verified">OTC</span>'}</td>
-        <td>${p.same_day ? '✅ Yes' : '⏳ No'}</td>
-        <td>${p.is_active ? '<span class="status-pill active">Active</span>' : '<span class="status-pill inactive">Inactive</span>'}</td>
-        <td>${Number.parseInt(p.stock_quantity)}</td>
-        <td>
-          <button class="row-action" onclick="openEditModal('${p.product_id}')">Edit</button>
-          <button class="row-action danger" onclick="deactivateProduct('${p.product_id}', '${esc(p.name)}')">Remove</button>
-        </td>
-      </tr>
-    `).join('');
+            <tr>
+              <td><strong>${esc(p.name)}</strong></td>
+              <td>₱${Number.parseFloat(p.price).toFixed(2)}</td>
+              <td>${esc(p.dosage_form)}</td>
+              <td>${esc(p.brand)}</td>
+              <td class="muted">${esc(p.Category.category_name || '—')}</td>
+              <td>${p.requires_rx ? '<span class="status-pill pending">Rx</span>' : '<span class="status-pill verified">OTC</span>'}</td>
+              <td>${p.same_day ? '✅ Yes' : '⏳ No'}</td>
+              <td>${p.is_active ? '<span class="status-pill active">Active</span>' : '<span class="status-pill inactive">Inactive</span>'}</td>
+              <td>${Number.parseInt(p.stock_quantity)}</td>
+              <td>
+                <button class="row-action" onclick="openEditModal('${p.product_id}')">Edit</button>
+                <button class="row-action danger" onclick="deactivateProduct('${p.product_id}', '${esc(p.name)}')">Remove</button>
+              </td>
+            </tr>
+        `).join('');
 
         renderPosProducts();
     } catch (err) {
@@ -380,8 +422,8 @@ async function updateOrderStatus(id, status) {
 /* ── POS ── */
 function renderPosProducts(filter = '') {
     const grid = document.getElementById('pos-products-grid');
-    const list = _medicines.filter(m =>
-        m.is_active && (!filter || m.name.toLowerCase().includes(filter.toLowerCase()))
+    const list = _products.filter(p =>
+        p.is_active && (!filter || p.name.toLowerCase().includes(filter.toLowerCase()))
     );
     if (!list.length) {
         grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);">No medicines found.</div>';
@@ -389,10 +431,11 @@ function renderPosProducts(filter = '') {
     }
     grid.innerHTML = list.map(m => `
     <button class="pos-product-btn ${m.requires_rx ? 'rx-item' : ''}"
-            onclick="addToPosCart('${m.medicine_id}', ${JSON.stringify(m.name).replace(/'/g, "\\'")} , ${m.unit_price}, ${m.requires_rx})">
+            onclick="addToPosCart('${m.product_id}', ${JSON.stringify(m.name).replaceAll('"', '\'')} , ${m.price}, ${m.requires_rx})">
       <span class="pos-product-badge ${m.requires_rx ? 'status-pill pending' : 'status-pill verified'}">${m.requires_rx ? 'Rx' : 'OTC'}</span>
       <span class="pos-product-name">${esc(m.name)}</span>
-      <span class="pos-product-price">₱${parseFloat(m.unit_price).toFixed(2)}</span>
+      <span class="pos-product-name"><i>${esc(m.brand)}</i></span>
+      <span class="pos-product-price">₱${parseFloat(m.price).toFixed(2)}</span>
     </button>
   `).join('');
 }
@@ -460,7 +503,7 @@ async function processSale() {
     btn.disabled = true; btn.textContent = 'Processing…';
 
     try {
-        const items = posCart.map(i => ({ medicine_id: i.id, quantity: i.qty }));
+        const items = posCart.map(i => ({ product_id: i.id, quantity: i.qty }));
         const res = await Auth.fetch(`/orders`, {
             method: 'POST',
             body: JSON.stringify({ branch_id: branchId, items, notes: 'POS walk-in sale · Payment at pick-up' }),
@@ -511,6 +554,10 @@ function openAddProductModal() {
     document.getElementById('edit-title').textContent = 'Add New Product';
     document.getElementById('edit-id').value = '';
     document.getElementById('edit-name').value = '';
+    document.getElementById('edit-brand').value = '';
+    document.getElementById('edit-category').value = '';
+    document.getElementById('edit-new-category').value = '';
+    updateNewCategoryInput();
     document.getElementById('edit-price').value = '';
     document.getElementById('edit-rx-otc').value = 'false';
     document.getElementById('edit-sameday').value = 'true';
@@ -518,13 +565,19 @@ function openAddProductModal() {
 }
 
 function openEditModal(id) {
-    const p = _medicines.find(m => m.medicine_id === id);
+    const p = _products.find(m => m.product_id === id);
     if (!p) return;
     document.getElementById('edit-id').value = id;
     document.getElementById('edit-name').value = p.name;
-    document.getElementById('edit-price').value = p.unit_price;
-    document.getElementById('edit-rx').value = String(p.requires_rx);
-    document.getElementById('edit-sameday').value = String(p.same_day_available);
+    document.getElementById('edit-brand').value = p.brand || '';
+    populateCategoryOptions(p.category_id || '');
+    document.getElementById('edit-new-category').value = '';
+    document.getElementById('edit-price').value = p.price;
+    document.getElementById('edit-rx-otc').value = String(p.requires_rx);
+    document.getElementById('edit-dosage-form').value = p.dosage_form || '';
+    document.getElementById('edit-sameday').value = String(p.same_day);
+    document.getElementById('edit-stock-qty').value = p.stock_quantity ?? 0;
+    document.getElementById('edit-description').value = p.description || '';
     document.getElementById('edit-title').textContent = 'Edit — ' + p.name;
     document.getElementById('edit-overlay').classList.add('open');
 }
@@ -538,15 +591,43 @@ async function saveEdit() {
     const id = document.getElementById('edit-id').value;
     const fileInput = document.getElementById('edit-image');
     const file = fileInput.files && fileInput.files[0];
+    const categorySelect = document.getElementById('edit-category');
+    let categoryId = categorySelect.value;
     if (!id && !file) {
         showToast('⚠ Select a product image before creating the product.');
+        return;
+    }
+    if (categoryId === '__new__') {
+        const categoryName = document.getElementById('edit-new-category').value.trim();
+        if (!categoryName) {
+            showToast('⚠ Enter a name for the new category.');
+            return;
+        }
+        try {
+            const categoryRes = await Auth.fetch('/admin/categories', {
+                method: 'POST',
+                body: JSON.stringify({ category_name: categoryName }),
+            });
+            const categoryData = await categoryRes.json();
+            if (!categoryRes.ok) throw new Error(categoryData.error || 'Unable to create category.');
+            categoryId = categoryData.category_id;
+            _categories.push(categoryData);
+            _categories.sort((a, b) => a.category_name.localeCompare(b.category_name));
+            populateCategoryOptions(categoryId);
+        } catch (error) {
+            showToast(`⚠ ${error.message || 'Unable to create category.'}`);
+            return;
+        }
+    }
+    if (!categoryId) {
+        showToast('⚠ Select or enter a product category.');
         return;
     }
 
     const fields = {
         name: document.getElementById('edit-name').value.trim(),
         brand: document.getElementById('edit-brand').value.trim(),
-        category_id: document.getElementById('edit-category').value.trim(),
+        category_id: categoryId,
         price: document.getElementById('edit-price').value,
         requires_rx: document.getElementById('edit-rx-otc').value,
         dosage_form: document.getElementById('edit-dosage-form').value.trim(),
@@ -569,7 +650,7 @@ async function saveEdit() {
 
         showToast(id ? '✓ Product updated.' : '✓ Product added.');
         closeEditModal();
-        loadProducts();
+        await Promise.all([loadProducts(), loadCategories()]);
     } catch (error) {
         showToast(`⚠ ${error.message || 'Unable to save product.'}`);
     }

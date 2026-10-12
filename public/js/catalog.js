@@ -50,7 +50,7 @@ async function loadMedicines() {
         allMedicines = data;
 
         /* Populate category filter and pills */
-        const categories = [...new Set(data.map(m => m.category).filter(Boolean))].sort();
+        const categories = [...new Set(data.map(m => m.Category.category_name).filter(Boolean))].sort();
         const catFilter = document.getElementById('category-filter');
         const catPills = document.getElementById('category-pills');
 
@@ -90,7 +90,7 @@ function renderMedicines(list) {
     }
 
     grid.innerHTML = list.map(med => {
-        const stockBadge = med.same_day_available
+        const stockBadge = med.same_day
             ? '<span class="stock-badge in-stock">● In Stock</span>'
             : '<span class="stock-badge low-stock">⏳ Next Day</span>';
 
@@ -98,8 +98,8 @@ function renderMedicines(list) {
             ? '<span class="badge rx">Rx</span>'
             : '<span class="badge otc">OTC</span>';
 
-        const img = med.image_url
-            ? `<img class="med-img" src="${med.image_url}" alt="${esc(med.name)}" onerror="this.parentElement.innerHTML='<div class=med-img-placeholder>💊</div>'" />`
+        const img = med.img_path
+            ? `<img class="med-img" src="${med.img_path}" alt="${esc(med.name)}" onerror="this.parentElement.innerHTML='<div class=med-img-placeholder>💊</div>'" />`
             : `<div class="med-img-placeholder">💊</div>`;
 
         return `
@@ -109,15 +109,15 @@ function renderMedicines(list) {
           <div class="med-badges">
             ${typeBadge}
             ${stockBadge}
-            ${med.category ? `<span class="badge" style="background:var(--off-white);color:var(--muted);border:1px solid var(--border);">${esc(med.category)}</span>` : ''}
+            ${med.Category.category_name ? `<span class="badge" style="background:var(--off-white);color:var(--muted);border:1px solid var(--border);">${esc(med.Category.category_name)}</span>` : ''}
           </div>
           <div class="med-name">${esc(med.name)}</div>
           ${med.sku ? `<div class="med-generic">SKU: ${esc(med.sku)}</div>` : ''}
-          <div class="med-price">₱${parseFloat(med.unit_price).toFixed(2)}</div>
+          <div class="med-price">₱${Number.parseFloat(med.price).toFixed(2)}</div>
         </div>
         <div class="med-actions">
-          <a href="medicine.html?id=${med.medicine_id}" class="btn-ghost med-actions">View Details</a>
-          <button class="btn" onclick="handleAddToCart('${med.medicine_id}', '${esc(med.name)}', ${med.unit_price}, ${med.requires_rx})">
+          <a href="medicine.html?id=${med.product_id}" class="btn-ghost med-actions">View Details</a>
+          <button class="btn" onclick="handleAddToCart('${med.product_id}', '${esc(med.name)}', ${med.price}, ${med.requires_rx})">
             Add to Cart
           </button>
         </div>

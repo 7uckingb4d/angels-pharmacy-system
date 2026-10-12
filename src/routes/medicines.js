@@ -6,6 +6,7 @@
 // DEL  /api/medicines/:id      — deactivate medicine (admin only)
 
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import { supabaseAdmin } from '../config/supabase.js';
 import { requireAdmin } from '../middleware/auth-middleware.js';
@@ -26,13 +27,18 @@ function parseBoolean(value) {
     return value === true || value === 'true';
 }
 
+function assignProductId(req, _res, next) {
+    req.product_id = randomUUID();
+    next();
+}
+
 /* ── LIST ────────────────────────────────────────────────────────── */
 router.get('/', async (req, res) => {
     const { search, category, requires_rx, same_day } = req.query;
 
     let query = supabaseAdmin
         .from('Product')
-        .select('*')
+        .select('*, Category ( category_name ) ')
         .eq('is_active', true)
         .order('name');
 
@@ -63,7 +69,8 @@ router.get('/:id', async (req, res) => {
 });
 
 /* ── CREATE (admin) ──────────────────────────────────────────────── */
-router.post('/', requireAdmin, uploadProductImage, async (req, res) => {
+router.post('/', requireAdmin, assignProductId, uploadProductImage, async (req, res) => {
+    const { product_id } = req;
     const { name, brand, category_id, price, requires_rx, dosage_form,
         same_day, stock_qty, description } = req.body;
     const numericPrice = Number(price);
@@ -84,6 +91,7 @@ router.post('/', requireAdmin, uploadProductImage, async (req, res) => {
     const { data, error } = await supabaseAdmin
         .from('Product')
         .insert({
+            product_id: product_id,
             category_id: category_id,
             name: name,
             description: description || null,

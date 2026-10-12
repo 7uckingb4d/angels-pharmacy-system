@@ -14,6 +14,46 @@ import { requireStaff, requireAdmin } from '../middleware/auth-middleware.js';
 
 const router = Router();
 
+/* ── PRODUCT CATEGORIES ──────────────────────────────────────────── */
+router.get('/categories', requireAdmin, async (req, res) => {
+    const { data, error } = await supabaseAdmin
+        .from('Category')
+        .select('category_id, category_name')
+        .eq('is_active', true)
+        .order('category_name');
+
+    if (error) {
+        console.error('Category lookup failed:', error);
+        return res.status(500).json({ error: 'Unable to load product categories.' });
+    }
+    return res.json(data);
+});
+
+router.post('/categories', requireAdmin, async (req, res) => {
+    const categoryName = typeof req.body?.category_name === 'string'
+        ? req.body.category_name.trim()
+        : '';
+
+    if (!categoryName || categoryName.length > 100) {
+        return res.status(400).json({ error: 'Category name must be between 1 and 100 characters.' });
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('Category')
+        .insert({ category_name: categoryName })
+        .select('category_id, category_name')
+        .single();
+
+    if (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ error: 'A category with this name already exists.' });
+        }
+        console.error('Category creation failed:', error);
+        return res.status(400).json({ error: error.message });
+    }
+    return res.status(201).json(data);
+});
+
 /* ── DASHBOARD STATS ─────────────────────────────────────────────── */
 router.get('/dashboard', async (req, res) => {
     const [orders, prescriptions, inventory, sales] = await Promise.all([
@@ -34,7 +74,7 @@ router.get('/dashboard', async (req, res) => {
     ).length;
 
     const revenue30d = (sales.data || []).reduce(
-        (sum, s) => sum + (s.unit_price * s.quantity), 0
+        (sum, s) => sum + (s.price * s.quantity), 0
     );
 
     return res.json({
@@ -65,16 +105,16 @@ router.get('/inventory', requireStaff, async (req, res) => {
 });
 
 router.post('/inventory', requireAdmin, async (req, res) => {
-    const { branch_id, medicine_id, stock_quantity, reorder_level } = req.body;
+    const { branch_id, product_id, stock_quantity, reorder_level } = req.body;
 
-    if (!branch_id || !medicine_id || stock_quantity === undefined) {
-        return res.status(400).json({ error: 'branch_id, medicine_id, stock_quantity required.' });
+    if (!branch_id || !product_id || stock_quantity === undefined) {
+        return res.status(400).json({ error: 'branch_id, product_id, stock_quantity required.' });
     }
 
     const { data, error } = await supabaseAdmin
         .from('inventory')
-        .upsert({ branch_id, medicine_id, stock_quantity, reorder_level: reorder_level ?? 10 },
-            { onConflict: 'branch_id,medicine_id' })
+        .upsert({ branch_id, product_id, stock_quantity, reorder_level: reorder_level ?? 10 },
+            { onConflict: 'branch_id,product_id' })
         .select()
         .single();
 

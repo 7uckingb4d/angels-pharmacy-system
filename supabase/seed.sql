@@ -28,48 +28,48 @@ INSERT INTO "public"."Product"
 SELECT c.category_id, v.name, v.description, v.same_day, v.requires_rx, v.brand, v.dosage_form, v.price, v.stock_quantity, v.img_path
 FROM (VALUES
   -- Pain Relief & Fever
-  ('Pain Relief & Fever', 'Paracetamol 500mg (Strip of 10)',        'Relief of mild to moderate pain and fever',                 true,  false, 'Biogesic',      'Tablet',   38.00, 250, 'products/paracetamol-500mg.jpg'),
-  ('Pain Relief & Fever', 'Ibuprofen 200mg (Strip of 10)',          'Anti-inflammatory for headache, toothache and body pain',   true,  false, 'Medicol',       'Capsule',  95.00, 180, 'products/ibuprofen-200mg.jpg'),
-  ('Pain Relief & Fever', 'Mefenamic Acid 500mg (Strip of 10)',     'For menstrual cramps and moderate pain',                    false, true,  'Generic',       'Capsule',  60.00, 120, 'products/mefenamic-acid-500mg.jpg'),
-  ('Pain Relief & Fever', 'Paracetamol Syrup 120mg/5mL (60mL)',     'Pediatric fever and pain reliever',                         true,  false, 'Tempra',        'Syrup',   110.00,  90, 'products/paracetamol-syrup-60ml.jpg'),
-  ('Pain Relief & Fever', 'Diclofenac Gel 1% (20g)',                'Topical gel for muscle and joint pain',                     true,  false, 'Voltaren',      'Gel',     215.00,  60, 'products/diclofenac-gel-20g.jpg'),
+  ('Pain Relief & Fever', 'Paracetamol 500mg (Strip of 10)',        'Relief of mild to moderate pain and fever',                 true,  false, 'Biogesic',      'Tablet',   38.00, 250, 'uploads/previews/paracetamol-500mg.jpg'),
+  ('Pain Relief & Fever', 'Ibuprofen 200mg (Strip of 10)',          'Anti-inflammatory for headache, toothache and body pain',   true,  false, 'Medicol',       'Capsule',  95.00, 180, 'uploads/previews/ibuprofen-200mg.jpg'),
+  ('Pain Relief & Fever', 'Mefenamic Acid 500mg (Strip of 10)',     'For menstrual cramps and moderate pain',                    false, true,  'Generic',       'Capsule',  60.00, 120, 'uploads/previews/mefenamic-acid-500mg.jpg'),
+  ('Pain Relief & Fever', 'Paracetamol Syrup 120mg/5mL (60mL)',     'Pediatric fever and pain reliever',                         true,  false, 'Tempra',        'Syrup',   110.00,  90, 'uploads/previews/paracetamol-syrup-60ml.jpg'),
+  ('Pain Relief & Fever', 'Diclofenac Gel 1% (20g)',                'Topical gel for muscle and joint pain',                     true,  false, 'Voltaren',      'Gel',     215.00,  60, 'uploads/previews/diclofenac-gel-20g.jpg'),
 
   -- Cold, Cough & Allergy
-  ('Cold, Cough & Allergy', 'Phenylephrine + Chlorphenamine + Paracetamol (Strip of 10)', 'Relief of colds, nasal congestion and fever', true,  false, 'Neozep Forte', 'Tablet',   70.00, 200, 'products/neozep-forte.jpg'),
-  ('Cold, Cough & Allergy', 'Cetirizine 10mg (Strip of 10)',        'Non-drowsy antihistamine for allergic rhinitis and hives',  true,  false, 'Generic',       'Tablet',   55.00, 220, 'products/cetirizine-10mg.jpg'),
-  ('Cold, Cough & Allergy', 'Loratadine 10mg (Strip of 10)',        'Once-daily antihistamine for allergy symptoms',             true,  false, 'Claritin',      'Tablet',  120.00, 140, 'products/loratadine-10mg.jpg'),
-  ('Cold, Cough & Allergy', 'Ambroxol 30mg/5mL Syrup (60mL)',       'Mucolytic that loosens phlegm',                             true,  false, 'Mucosolvan',    'Syrup',   165.00,  75, 'products/ambroxol-syrup-60ml.jpg'),
-  ('Cold, Cough & Allergy', 'Lagundi 600mg (Strip of 10)',          'Herbal cough and asthma relief',                            true,  false, 'Ascof',         'Tablet',   85.00, 130, 'products/lagundi-600mg.jpg'),
+  ('Cold, Cough & Allergy', 'Phenylephrine + Chlorphenamine + Paracetamol (Strip of 10)', 'Relief of colds, nasal congestion and fever', true,  false, 'Neozep Forte', 'Tablet',   70.00, 200, 'uploads/previews/neozep-forte.jpg'),
+  ('Cold, Cough & Allergy', 'Cetirizine 10mg (Strip of 10)',        'Non-drowsy antihistamine for allergic rhinitis and hives',  true,  false, 'Generic',       'Tablet',   55.00, 220, 'uploads/previews/cetirizine-10mg.jpg'),
+  ('Cold, Cough & Allergy', 'Loratadine 10mg (Strip of 10)',        'Once-daily antihistamine for allergy symptoms',             true,  false, 'Claritin',      'Tablet',  120.00, 140, 'uploads/previews/loratadine-10mg.jpg'),
+  ('Cold, Cough & Allergy', 'Ambroxol 30mg/5mL Syrup (60mL)',       'Mucolytic that loosens phlegm',                             true,  false, 'Mucosolvan',    'Syrup',   165.00,  75, 'uploads/previews/ambroxol-syrup-60ml.jpg'),
+  ('Cold, Cough & Allergy', 'Lagundi 600mg (Strip of 10)',          'Herbal cough and asthma relief',                            true,  false, 'Ascof',         'Tablet',   85.00, 130, 'uploads/previews/lagundi-600mg.jpg'),
 
   -- Vitamins & Supplements
-  ('Vitamins & Supplements', 'Ascorbic Acid 500mg (Bottle of 30)',  'Vitamin C to support immune health',                        true,  false, 'Poten-Cee',     'Capsule', 250.00, 160, 'products/vitamin-c-500mg.jpg'),
-  ('Vitamins & Supplements', 'Multivitamins + Minerals (Bottle of 30)', 'Complete daily multivitamin',                           true,  false, 'Centrum',       'Tablet',  620.00,  85, 'products/multivitamin-30.jpg'),
-  ('Vitamins & Supplements', 'Vitamin D3 1000 IU (Bottle of 30)',   'Supports bone health and calcium absorption',               true,  false, 'Generic',       'Softgel', 380.00, 100, 'products/vitamin-d3-1000iu.jpg'),
-  ('Vitamins & Supplements', 'Ferrous Sulfate + Folic Acid (Bottle of 30)', 'Iron supplement for anemia prevention',             true,  false, 'Iberet',        'Tablet',  395.00,  70, 'products/iron-folic-acid.jpg'),
-  ('Vitamins & Supplements', 'Omega-3 Fish Oil 1000mg (Bottle of 60)', 'Supports heart and brain health (out of stock sample)', false, false, 'Generic',       'Softgel', 780.00,   0, 'products/omega-3-1000mg.jpg'),
+  ('Vitamins & Supplements', 'Ascorbic Acid 500mg (Bottle of 30)',  'Vitamin C to support immune health',                        true,  false, 'Poten-Cee',     'Capsule', 250.00, 160, 'uploads/previews/vitamin-c-500mg.jpg'),
+  ('Vitamins & Supplements', 'Multivitamins + Minerals (Bottle of 30)', 'Complete daily multivitamin',                           true,  false, 'Centrum',       'Tablet',  620.00,  85, 'uploads/previews/multivitamin-30.jpg'),
+  ('Vitamins & Supplements', 'Vitamin D3 1000 IU (Bottle of 30)',   'Supports bone health and calcium absorption',               true,  false, 'Generic',       'Softgel', 380.00, 100, 'uploads/previews/vitamin-d3-1000iu.jpg'),
+  ('Vitamins & Supplements', 'Ferrous Sulfate + Folic Acid (Bottle of 30)', 'Iron supplement for anemia prevention',             true,  false, 'Iberet',        'Tablet',  395.00,  70, 'uploads/previews/iron-folic-acid.jpg'),
+  ('Vitamins & Supplements', 'Omega-3 Fish Oil 1000mg (Bottle of 60)', 'Supports heart and brain health (out of stock sample)', false, false, 'Generic',       'Softgel', 780.00,   0, 'uploads/previews/omega-3-1000mg.jpg'),
 
   -- Antibiotics (Rx)
-  ('Antibiotics', 'Amoxicillin 500mg (Strip of 10)',                'Broad-spectrum penicillin antibiotic',                      false, true,  'Generic',       'Capsule', 120.00,  80, 'products/amoxicillin-500mg.jpg'),
-  ('Antibiotics', 'Azithromycin 500mg (Strip of 3)',                'Macrolide antibiotic for respiratory infections',           false, true,  'Generic',       'Tablet',  290.00,  50, 'products/azithromycin-500mg.jpg'),
-  ('Antibiotics', 'Amoxicillin + Clavulanic Acid 625mg (Strip of 14)', 'Combination antibiotic for resistant infections',       false, true,  'Augmentin',     'Tablet',  980.00,  40, 'products/co-amoxiclav-625mg.jpg'),
-  ('Antibiotics', 'Cefalexin 500mg (Strip of 10)',                  'Cephalosporin antibiotic for skin and urinary infections',  false, true,  'Generic',       'Capsule', 150.00,  65, 'products/cefalexin-500mg.jpg'),
+  ('Antibiotics', 'Amoxicillin 500mg (Strip of 10)',                'Broad-spectrum penicillin antibiotic',                      false, true,  'Generic',       'Capsule', 120.00,  80, 'uploads/previews/amoxicillin-500mg.jpg'),
+  ('Antibiotics', 'Azithromycin 500mg (Strip of 3)',                'Macrolide antibiotic for respiratory infections',           false, true,  'Generic',       'Tablet',  290.00,  50, 'uploads/previews/azithromycin-500mg.jpg'),
+  ('Antibiotics', 'Amoxicillin + Clavulanic Acid 625mg (Strip of 14)', 'Combination antibiotic for resistant infections',       false, true,  'Augmentin',     'Tablet',  980.00,  40, 'uploads/previews/co-amoxiclav-625mg.jpg'),
+  ('Antibiotics', 'Cefalexin 500mg (Strip of 10)',                  'Cephalosporin antibiotic for skin and urinary infections',  false, true,  'Generic',       'Capsule', 150.00,  65, 'uploads/previews/cefalexin-500mg.jpg'),
 
   -- Maintenance Medications (Rx)
-  ('Maintenance Medications', 'Amlodipine 5mg (Box of 30)',         'Calcium channel blocker for hypertension',                  false, true,  'Generic',       'Tablet',  280.00, 110, 'products/amlodipine-5mg.jpg'),
-  ('Maintenance Medications', 'Losartan 50mg (Box of 30)',          'Angiotensin receptor blocker for hypertension',             false, true,  'Generic',       'Tablet',  360.00,  95, 'products/losartan-50mg.jpg'),
-  ('Maintenance Medications', 'Metformin 500mg (Box of 30)',        'First-line oral medication for type 2 diabetes',            false, true,  'Generic',       'Tablet',  190.00, 125, 'products/metformin-500mg.jpg'),
-  ('Maintenance Medications', 'Atorvastatin 20mg (Box of 30)',      'Statin for lowering cholesterol',                           false, true,  'Generic',       'Tablet',  450.00,  80, 'products/atorvastatin-20mg.jpg'),
+  ('Maintenance Medications', 'Amlodipine 5mg (Box of 30)',         'Calcium channel blocker for hypertension',                  false, true,  'Generic',       'Tablet',  280.00, 110, 'uploads/previews/amlodipine-5mg.jpg'),
+  ('Maintenance Medications', 'Losartan 50mg (Box of 30)',          'Angiotensin receptor blocker for hypertension',             false, true,  'Generic',       'Tablet',  360.00,  95, 'uploads/previews/losartan-50mg.jpg'),
+  ('Maintenance Medications', 'Metformin 500mg (Box of 30)',        'First-line oral medication for type 2 diabetes',            false, true,  'Generic',       'Tablet',  190.00, 125, 'uploads/previews/metformin-500mg.jpg'),
+  ('Maintenance Medications', 'Atorvastatin 20mg (Box of 30)',      'Statin for lowering cholesterol',                           false, true,  'Generic',       'Tablet',  450.00,  80, 'uploads/previews/atorvastatin-20mg.jpg'),
 
   -- Digestive Health
-  ('Digestive Health', 'Loperamide 2mg (Strip of 10)',              'Short-term relief of diarrhea',                             true,  false, 'Imodium',       'Capsule', 130.00, 100, 'products/loperamide-2mg.jpg'),
-  ('Digestive Health', 'Oral Rehydration Salts (Sachet)',           'Replaces fluids and electrolytes lost to diarrhea',         true,  false, 'Hydrite',       'Powder',   28.00, 300, 'products/oral-rehydration-salts.jpg'),
-  ('Digestive Health', 'Aluminum + Magnesium Hydroxide (Strip of 10)', 'Antacid chewable tablet for heartburn and hyperacidity', true,  false, 'Kremil-S',      'Tablet',   80.00, 190, 'products/kremil-s.jpg'),
-  ('Digestive Health', 'Omeprazole 20mg (Strip of 10)',             'Proton pump inhibitor for GERD and ulcers',                 false, true,  'Generic',       'Capsule', 140.00,  90, 'products/omeprazole-20mg.jpg'),
+  ('Digestive Health', 'Loperamide 2mg (Strip of 10)',              'Short-term relief of diarrhea',                             true,  false, 'Imodium',       'Capsule', 130.00, 100, 'uploads/previews/loperamide-2mg.jpg'),
+  ('Digestive Health', 'Oral Rehydration Salts (Sachet)',           'Replaces fluids and electrolytes lost to diarrhea',         true,  false, 'Hydrite',       'Powder',   28.00, 300, 'uploads/previews/oral-rehydration-salts.jpg'),
+  ('Digestive Health', 'Aluminum + Magnesium Hydroxide (Strip of 10)', 'Antacid chewable tablet for heartburn and hyperacidity', true,  false, 'Kremil-S',      'Tablet',   80.00, 190, 'uploads/previews/kremil-s.jpg'),
+  ('Digestive Health', 'Omeprazole 20mg (Strip of 10)',             'Proton pump inhibitor for GERD and ulcers',                 false, true,  'Generic',       'Capsule', 140.00,  90, 'uploads/previews/omeprazole-20mg.jpg'),
 
   -- First Aid & Wound Care
-  ('First Aid & Wound Care', 'Povidone-Iodine 10% Solution (60mL)', 'Antiseptic for cuts, scrapes and minor wounds',             true,  false, 'Betadine',      'Solution', 95.00, 150, 'products/povidone-iodine-60ml.jpg'),
-  ('First Aid & Wound Care', 'Adhesive Bandage (Box of 100)',       'Assorted-size sterile adhesive strips',                     true,  false, 'Band-Aid',      'Adhesive Strip', 140.00, 120, 'products/adhesive-bandage-100.jpg'),
-  ('First Aid & Wound Care', 'Isopropyl Alcohol 70% (500mL)',       'Disinfectant for skin and surfaces',                        true,  false, 'Generic',       'Solution', 110.00, 210, 'products/isopropyl-alcohol-500ml.jpg')
+  ('First Aid & Wound Care', 'Povidone-Iodine 10% Solution (60mL)', 'Antiseptic for cuts, scrapes and minor wounds',             true,  false, 'Betadine',      'Solution', 95.00, 150, 'uploads/previews/povidone-iodine-60ml.jpg'),
+  ('First Aid & Wound Care', 'Adhesive Bandage (Box of 100)',       'Assorted-size sterile adhesive strips',                     true,  false, 'Band-Aid',      'Adhesive Strip', 140.00, 120, 'uploads/previews/adhesive-bandage-100.jpg'),
+  ('First Aid & Wound Care', 'Isopropyl Alcohol 70% (500mL)',       'Disinfectant for skin and surfaces',                        true,  false, 'Generic',       'Solution', 110.00, 210, 'uploads/previews/isopropyl-alcohol-500ml.jpg')
 ) AS v(category_name, name, description, same_day, requires_rx, brand, dosage_form, price, stock_quantity, img_path)
 JOIN "public"."Category" c ON c.category_name = v.category_name;
 

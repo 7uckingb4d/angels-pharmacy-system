@@ -398,30 +398,32 @@ p:last-child {
 .card {
     background: var(--surface);
     border-radius: var(--radius);
-    border: 1px solid rgba(192, 21, 42, 0.08);
+    border: 2px solid transparent;
     padding: 24px;
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.28s var(--ease), border-color 0.28s, transform 0.28s var(--ease);
     position: relative;
 }
 
-.card::after {
+/* .card::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--red), var(--red-dark), var(--red-deeper));
+    background: 
     border-radius: var(--radius) var(--radius) 0 0;
     opacity: 0;
     transition: opacity 0.28s;
-}
+} */
 
 .card:hover {
-    box-shadow: var(--shadow);
-    border-color: rgba(192, 21, 42, 0.16);
-    transform: translateY(-3px);
+    box-shadow: var(--shadow-sm);
+    background:
+        linear-gradient(var(--surface), var(--surface)) padding-box,
+        linear-gradient(135deg, var(--red-mid), var(--muted), var(--red)) border-box;
+    /* transform: translateY(-3px); */
 }
 
 .card:hover::after {

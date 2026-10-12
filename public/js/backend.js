@@ -566,7 +566,7 @@ async function placeOrder() {
                 /*branch_id: branchMap[branch] || branch,*/
                 prescription_id,
                 items: state.cart.map(i => ({
-                    medicine_id: i.id,
+                    product_id: i.id,
                     quantity: i.qty,
                     unit_price: i.price,
                 })),

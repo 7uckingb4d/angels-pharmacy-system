@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 
@@ -22,8 +21,15 @@ const productImageUpload = multer({
                 callback(error, previewUploadDirectory);
             });
         },
-        filename(_req, file, callback) {
-            callback(null, `${randomUUID()}${imageExtensions[file.mimetype]}`);
+        filename(req, file, callback) {
+            const productId = req.product_id ?? req.params.id;
+            if (!productId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
+                const error = new Error('A valid product UUID is required to upload an image.');
+                error.code = 'INVALID_PRODUCT_ID';
+                callback(error);
+                return;
+            }
+            callback(null, `${productId}${imageExtensions[file.mimetype]}`);
         },
     }),
     limits: { fileSize: 5 * 1024 * 1024, files: 1 },
@@ -42,7 +48,9 @@ export function uploadProductImage(req, res, next) {
     productImageUpload.single('image')(req, res, error => {
         if (!error) return next();
 
-        if (error instanceof multer.MulterError || error.code === 'INVALID_PRODUCT_IMAGE') {
+        if (error instanceof multer.MulterError ||
+            error.code === 'INVALID_PRODUCT_IMAGE' ||
+            error.code === 'INVALID_PRODUCT_ID') {
             return res.status(400).json({ error: error.message });
         }
 

@@ -65,25 +65,25 @@ async function loadMedicines(search = '', sameDayOnly = false) {
         }
 
         grid.innerHTML = data.map(med => `
-        <div class="product-card" role="listitem" data-id="${med.medicine_id}">
+        <div class="product-card" role="listitem" data-id="${med.product_id}">
           <div class="product-img-wrap">
-            ${med.image_url
-                ? `<img src="${med.image_url}" alt="${med.name}" class="product-img" style="width:100%;height:140px;object-fit:cover;border-radius:10px;" onerror="this.style.display='none'" />`
+            ${med.img_path
+                ? `<img src="${med.img_path}" alt="${med.name}" class="product-img" style="width:100%;height:140px;object-fit:cover;border-radius:10px;" onerror="this.style.display='none'" />`
                 : `<div style="font-size:28px;text-align:center;">💊</div>`}
           </div>
           <div class="product-info">
             <div class="product-name">${med.name}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px;">
               ${med.requires_rx ? '<span class="badge rx">Rx</span>' : '<span class="badge otc">OTC</span>'}
-              ${med.same_day_available ? '<span class="badge safe">Same Day</span>' : ''}
-              ${med.category ? `<span class="badge" style="background:var(--off-white);color:var(--muted);border:1px solid var(--border);">${med.category}</span>` : ''}
+              ${med.same_day ? '<span class="badge safe">Same Day</span>' : ''}
+              ${med.Category.category_name ? `<span class="badge" style="background:var(--off-white);color:var(--muted);border:1px solid var(--border);">${med.Category.category_name}</span>` : ''}
             </div>
-            <div class="product-price">₱${parseFloat(med.unit_price).toFixed(2)}</div>
+            <div class="product-price">₱${parseFloat(med.price).toFixed(2)}</div>
           </div>
           <button class="btn add-to-cart"
-                  data-id="${med.medicine_id}"
+                  data-id="${med.product_id}"
                   data-name="${med.name}"
-                  data-price="${med.unit_price}"
+                  data-price="${med.price}"
                   data-rx="${med.requires_rx}"
                   onclick="window._addToCart && window._addToCart(this)">
             Add to Cart

@@ -190,9 +190,6 @@
                                 <div class="pos-empty">No items added yet.<br>Click a product to add it.</div>
                             </div>
                             <div class="pos-cart-footer">
-                                <select class="pos-branch-select" id="pos-branch">
-                                    <option value="">Select branch…</option>
-                                </select>
                                 <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">💡 Payment will be
                                     collected at
                                     pick-up.</div>
@@ -417,11 +414,12 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-category">Category</label>
-                        <select id="edit-category">
-                            <option value="73e52ee7-da8f-4162-aa35-1d6ef61ef142">category 1</option>
-                            <option value="81141b51-894e-41ef-83c5-09b3719bb276">category 2</option>
-                            <option value="d1784e29-711b-42ee-9a25-38cf7e020a06">category 2</option>
+                        <select id="edit-category" required>
+                            <option value="">Loading categories…</option>
                         </select>
+                        <input type="text" id="edit-new-category" maxlength="100"
+                            placeholder="Enter a new category name" aria-label="New category name"
+                            style="display:none;margin-top:8px;" />
                     </div>
                     <div class="form-group">
                         <label for="edit-price">Unit Price (₱)</label>
