@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
-const previewUploadDirectory = path.resolve(moduleDirectory, '../../uploads/previews');
+const previewUploadDirectory = path.resolve(moduleDirectory, '../../public/uploads/medicines');
 
 const imageExtensions = {
     'image/avif': '.avif',

@@ -76,13 +76,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { index: false }));
 
 app.get('/', (req, res, next) => {
-
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, '/public/index.html'));
 });
+
+app.get('/home', (req, res, next) => {
+    res.sendFile(path.join(__dirname, '/public/homepage.html'));
+})
 
 /* -- HEALTH CHECK ---------------------------------------------------------- */
 app.get('/api/health', (req, res) => {
@@ -106,7 +108,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on path ${__dirname}`);
     console.log(`Angel's Pharmacy API running on http://${HOSTNAME}:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
 });

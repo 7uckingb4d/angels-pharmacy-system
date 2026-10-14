@@ -192,7 +192,7 @@ function setupProducts(data) {
     if (!productsEl) return;
     productsEl.innerHTML = "";
 
-    // Safe null checks — these elements only exist on index.html
+    // Safe null checks — these elements only exist on /
     const searchEl = document.getElementById("site-search");
     const filterEl = document.getElementById("filter-sameday");
     const query = searchEl ? (searchEl.value || "").trim().toLowerCase() : "";
@@ -725,10 +725,10 @@ function initNav() {
     });
 
     const links = menu.querySelectorAll("a");
-    const current = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    const current = (location.pathname.split("/").pop() || "/").toLowerCase();
     links.forEach((a) => {
         const href = (a.getAttribute("href") || "").split("/").pop().toLowerCase();
-        if (href === current || (href === "index.html" && current === ""))
+        if (href === current || (href === "/" && current === ""))
             a.classList.add("active");
         else
             a.classList.remove("active");

@@ -31,8 +31,8 @@ function renderNavAuth() {
     `;
     } else {
         navAuth.innerHTML = `
-      <a href="index.html" class="btn-ghost" style="font-size:13px;">Log In</a>
-      <a href="index.html?signup=1" class="btn" style="font-size:13px;">Sign Up</a>
+      <a href="/" class="btn-ghost" style="font-size:13px;">Log In</a>
+      <a href="/?signup=1" class="btn" style="font-size:13px;">Sign Up</a>
     `;
     }
 }
@@ -182,7 +182,7 @@ function handleAddToCart() {
                 ? `Please log in to add <strong>${esc(_medicine.name)}</strong> to your cart.`
                 : 'Please log in to add items to your cart.';
         document.getElementById('login-redirect-btn').href =
-            `index.html?redirect=${encodeURIComponent(currentPage)}`;
+            `/?redirect=${encodeURIComponent(currentPage)}`;
         document.getElementById('login-prompt').classList.add('open');
         return;
     }

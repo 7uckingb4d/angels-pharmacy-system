@@ -33,8 +33,8 @@ function renderNavAuth() {
     `;
     } else {
         navAuth.innerHTML = `
-      <a href="index.html" class="btn-ghost" style="font-size:13px;">Log In</a>
-      <a href="index.html?signup=1" class="btn" style="font-size:13px;">Sign Up</a>
+      <a href="/" class="btn-ghost" style="font-size:13px;">Log In</a>
+      <a href="/?signup=1" class="btn" style="font-size:13px;">Sign Up</a>
     `;
     }
 }
@@ -181,7 +181,7 @@ function handleAddToCart(id, name, price, requiresRx) {
 function showLoginPrompt(msg) {
     document.getElementById('login-prompt-msg').innerHTML = msg;
     const redirectBtn = document.getElementById('login-redirect-btn');
-    redirectBtn.href = `index.html?redirect=catalog.html`;
+    redirectBtn.href = `/?redirect=catalog.html`;
     document.getElementById('login-prompt').classList.add('open');
 }
 function closeLoginPrompt() { document.getElementById('login-prompt').classList.remove('open'); }

@@ -12,7 +12,7 @@ const router = Router();
 
 /* ── PLACE ORDER ─────────────────────────────────────────────────── */
 router.post('/', requireAuth, async (req, res) => {
-    const { /*branch_id,*/ items, prescription_id, notes } = req.body;
+    const { items, prescription_id, notes } = req.body;
     // items: [{ product_id, quantity }]
 
     if (branch_id || !items || items.length === 0) {
@@ -89,7 +89,7 @@ router.post('/', requireAuth, async (req, res) => {
 /* ── GET MY ORDERS ───────────────────────────────────────────────── */
 router.get('/', requireAuth, async (req, res) => {
     const { data, error } = await supabaseAdmin
-        .from('orders')
+        .from('Order')
         .select(`
       order_id, status, total_amount, placed_at, ready_at, completed_at, notes,
       branches ( name ),
@@ -108,7 +108,7 @@ router.get('/', requireAuth, async (req, res) => {
 /* ── GET SINGLE ORDER ────────────────────────────────────────────── */
 router.get('/:id', requireAuth, async (req, res) => {
     const { data, error } = await supabaseAdmin
-        .from('orders')
+        .from('Order')
         .select(`
       *, branches ( name ),
       order_items ( *, medicines ( name, image_url, requires_rx ) ),
@@ -136,7 +136,7 @@ router.patch('/:id/status', requireStaff, async (req, res) => {
     if (status === 'completed') updates.completed_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
-        .from('orders')
+        .from('Order')
         .update(updates)
         .eq('order_id', req.params.id)
         .select()

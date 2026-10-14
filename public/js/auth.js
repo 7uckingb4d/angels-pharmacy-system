@@ -1,5 +1,3 @@
-
-
 const Auth = (() => {
 
     const API = '/api';  // change to your domain in production
@@ -142,7 +140,7 @@ const Auth = (() => {
             await apiFetch('/auth/logout', { method: 'POST' });
         } catch { /* ignore network errors on logout */ }
         clearTokens();
-        window.location.replace('index.html');
+        window.location.replace('/');
     }
 
     /* ── GET SESSION (current user) ────────────────────────────────── */
@@ -155,14 +153,14 @@ const Auth = (() => {
 
     /* ── REQUIRE AUTH ──────────────────────────────────────────────── */
     /* Call at the top of any protected page.
-       Redirects to index.html immediately if no session exists.       */
+       Redirects to / immediately if no session exists.       */
 
     async function requireAuth() {
         if (!getAccessToken()) {
             // Try refresh before giving up
             const refreshed = await tryRefresh();
             if (!refreshed) {
-                window.location.replace('index.html');
+                window.location.replace('/');
                 return null;
             }
         }
@@ -176,7 +174,7 @@ const Auth = (() => {
             return user;
         } catch {
             clearTokens();
-            window.location.replace('index.html');
+            window.location.replace('/');
             return null;
         }
     }
@@ -186,7 +184,7 @@ const Auth = (() => {
     async function requireAdmin() {
         const user = await requireAuth();
         if (user && user.role !== 'admin') {
-            window.location.replace('homepage.html');
+            window.location.replace('home');
             return null;
         }
         return user;

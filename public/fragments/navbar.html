@@ -1,0 +1,31 @@
+<div class="nav-container">
+    <a class="brand" href="/">
+        <div class="brand-icon" id="logo-wrap">
+            <img id="logo-img" src="assets/logo.png" alt="Angel's Pharmacy Logo"
+                style="width:100%;height:100%;object-fit:contain;" />
+            <span id="logo-fallback">A+</span>
+        </div>
+        Angel's Pharmacy
+    </a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">☰</button>
+    <ul id="nav-menu" class="nav-menu" hidden>
+        <li><a href="catalog.html">Medicines</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="about.html">About Us</a></li>
+        <li><a href="more-info.html">More Info</a></li>
+        <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+        ${_currentUser ?
+        `<div id="user-avatar"
+            style="width:34px;height:34px;border-radius:99px;background:linear-gradient(135deg,var(--red),var(--red-dark));color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;cursor:default;"
+            title=""></div>
+        <span id="user-name"
+            style="font-size:13px;font-weight:600;color:var(--text-sub);white-space:nowrap;display:none;"></span>
+        <button class="btn-ghost" id="logout-btn" style="font-size:12px;padding:6px 12px;white-space:nowrap;"
+            onclick="Auth.logOut()">Log Out</button>`
+        : `<a href="#" class="btn-ghost" onclick="openModal('login')">Log In</a>
+        <a href="#" class="btn" onclick="openModal('signup')">Get Started</a>`}
+
+    </div>
+</div>

@@ -10,16 +10,13 @@ async function start() {
     console.log(userProfile);
 
     /* Populate user greeting */
-    const firstName = userProfile.full_name;
-    const initial = firstName.charAt(0).toUpperCase();
-    const avatar = document.getElementById('user-avatar');
-    const nameEl = document.getElementById('user-name');
-    if (avatar) { avatar.textContent = initial; avatar.title = userProfile.full_name || userProfile.email || ''; }
-    if (nameEl) { nameEl.textContent = 'Hi, ' + firstName + '!'; nameEl.style.display = ''; }
+    renderNavBar();
+    
 
     /* Load data now that we have a valid session */
     await loadMedicines();
     await loadMyOrders();
+    
 }
 
 start();

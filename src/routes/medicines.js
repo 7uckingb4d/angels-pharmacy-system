@@ -102,7 +102,7 @@ router.post('/', requireAdmin, assignProductId, uploadProductImage, async (req, 
             price: numericPrice,
             stock_quantity: stockQuantity,
             is_active: true,
-            img_path: `/uploads/previews/${req.file.filename}`,
+            img_path: `/uploads/medicines/${req.file.filename}`,
         })
         .select()
         .single();
