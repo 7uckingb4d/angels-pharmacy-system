@@ -11,7 +11,6 @@ async function start() {
 
     /* Populate user greeting */
     renderNavBar();
-    
 
     /* Load data now that we have a valid session */
     await loadMedicines();
