@@ -1,0 +1,10 @@
+GRANT SELECT ON public."Category" TO service_role;
+GRANT SELECT ON public."InventoryLog" TO service_role;
+GRANT SELECT ON public."Notification" TO service_role;
+GRANT SELECT ON public."NotificationType" TO service_role;
+GRANT SELECT ON public."Order" TO service_role;
+GRANT SELECT ON public."OrderItem" TO service_role;
+GRANT SELECT ON public."Payment" TO service_role;
+GRANT SELECT ON public."Prescription" TO service_role;
+GRANT SELECT ON public."Product" TO service_role;
+GRANT SELECT ON public."Profiles" TO service_role;

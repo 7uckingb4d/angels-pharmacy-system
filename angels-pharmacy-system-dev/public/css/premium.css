@@ -1,0 +1,307 @@
+/* Premium refinement layer. Loaded last on every page. Visual only. */
+:root {
+  --red: #c80104;
+  --red-dark: #a30103;
+  --red-deeper: #c80104;
+  --red-light: #fdf2f2;
+  --red-mid: #e3e3e8;
+  --red-glow: rgba(0, 0, 0, 0.06);
+  --hairline: rgba(0, 0, 0, 0.08);
+
+  --white: #ffffff;
+  --off-white: #fbfbfd;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --text-sub: #424245;
+  --muted: #6e6e73;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.07);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.10);
+
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, a, span, div, td, th, label {
+  font-family: var(--font) !important;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+}
+h1, h2, h3, h4 { font-weight: 600 !important; letter-spacing: -0.025em; font-style: normal !important; }
+h1 { letter-spacing: -0.035em; }
+p { line-height: 1.55; }
+
+/* Remove decorative noise */
+*::before, *::after { text-shadow: none; }
+[class*="hero"]::before, [class*="hero"]::after,
+[class*="banner"]::before, [class*="banner"]::after,
+[class*="cta"]::before, [class*="cta"]::after { background-image: none !important; content: none !important; }
+* { text-shadow: none !important; }
+
+/* Navigation: frosted glass */
+.site-nav {
+  background: rgba(251, 251, 253, 0.8) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--hairline) !important;
+  box-shadow: none !important;
+}
+.site-nav a:not(.btn):not(.btn-white):not([class*='signup']) { color: var(--text) !important; font-weight: 400; font-size: 14px; opacity: .85; }
+.site-nav a:hover { opacity: 1; }
+.nav-toggle { background: transparent !important; border: 0 !important; color: var(--text) !important; align-items: center; justify-content: center; }
+
+/* Surfaces */
+.card, .feature-card, .value-card, .stat-card, .qa-card, .payment-card, .panel, .admin-table-wrap, .step {
+  background: var(--surface) !important;
+  border: 1px solid var(--hairline) !important;
+  box-shadow: none !important;
+  border-radius: var(--radius) !important;
+  transition: transform .4s var(--ease), box-shadow .4s var(--ease);
+}
+.feature-card:hover, .value-card:hover, .qa-card:hover, .payment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Buttons: pill, solid, quiet */
+.btn, .form-submit, .btn-white, .btn-outline, .btn-ghost, .tab-btn, .logout-btn {
+  border-radius: 980px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+  box-shadow: none !important;
+  transition: background-color .2s var(--ease), opacity .2s var(--ease), transform .2s var(--ease);
+}
+.btn, .form-submit { background: var(--red) !important; color: #fff !important; border: 0 !important; }
+.btn:hover, .form-submit:hover { background: var(--red-dark) !important; transform: none !important; }
+.btn-ghost, .btn-outline { background: transparent !important; color: var(--red) !important; border: 1px solid var(--border-strong) !important; }
+.btn-white { background: #fff !important; color: var(--text) !important; border: 0 !important; }
+.btn:active, .form-submit:active, .btn-white:active { transform: scale(0.98) !important; }
+
+/* Badges */
+.hero-badge, .badge, .topbar-pill, .section-label {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 980px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+.section-label { background: transparent !important; border: 0 !important; color: var(--red) !important; padding: 0 !important; font-size: 13px !important; }
+.topbar-pill { background: var(--bg) !important; border-color: var(--hairline) !important; color: var(--text-sub) !important; }
+
+/* Forms */
+input, select, textarea {
+  border-radius: 12px !important;
+  border: 1px solid var(--border-strong) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: #0071e3 !important;
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15) !important;
+}
+
+/* Tables */
+.admin-table th { font-weight: 500 !important; color: var(--muted) !important; text-transform: none !important; letter-spacing: 0 !important; background: transparent !important; border-bottom: 1px solid var(--hairline) !important; }
+.admin-table td { border-bottom: 1px solid var(--hairline) !important; }
+
+/* Admin sidebar */
+.sidebar-link { border-radius: 10px !important; font-weight: 500 !important; }
+.sidebar-link.active { background: rgba(255, 255, 255, 0.12) !important; box-shadow: none !important; }
+
+/* Modals and toasts */
+.modal, .login-prompt-modal, .edit-modal {
+  border-radius: 24px !important;
+  box-shadow: var(--shadow-xl) !important;
+  border: 1px solid var(--hairline) !important;
+}
+.modal-close, .edit-close { display: inline-flex; align-items: center; justify-content: center; background: var(--bg) !important; color: var(--text) !important; border-radius: 999px !important; border: 0 !important; }
+.toast {
+  background: rgba(29, 29, 31, 0.92) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 0 !important;
+}
+
+/* Stats */
+.stat-num, .about-stat-num, .snum { font-weight: 600 !important; letter-spacing: -0.03em; font-style: normal !important; }
+
+/* Icon slots left empty after cleanup collapse cleanly */
+.ico:empty, .icon:empty, .info-icon:empty, .feature-ico:empty, .stat-ico:empty,
+.qa-ico:empty, .activity-dot:empty, .login-prompt-ico:empty, .support-ico:empty, .upload-icon:empty { display: none !important; }
+
+/* Calmer motion */
+.reveal { transition-duration: .8s !important; transition-timing-function: var(--ease) !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+::selection { background: rgba(0, 113, 227, 0.18); }
+
+.site-nav .btn, .site-nav [class*="signup"], .site-nav [class*="cta"] { color: #fff !important; background: var(--red) !important; }
+.brand-icon, .brand img { box-shadow: none !important; filter: none !important; }
+em, i, [class*="hero"] em { font-style: normal !important; }
+[class*="hero"] .btn-ghost, [class*="hero"] .btn-outline, [class*="banner"] .btn-ghost, [class*="cta"] .btn-ghost {
+  color: #fff !important; border-color: rgba(255,255,255,0.35) !important; background: rgba(255,255,255,0.06) !important; }
+
+.section-title, .section-header h2 { color: var(--text) !important; }
+
+/* v2: white and red, no card boxes */
+body, section, .section { background-color: #fff; }
+.card, .feature-card, .value-card, .stat-card, .qa-card, .payment-card, .panel, .step {
+  background: transparent !important; border: 0 !important; border-radius: 0 !important;
+  box-shadow: none !important; border-top: 1px solid var(--hairline) !important; padding-left: 0 !important; padding-right: 0 !important;
+}
+.feature-card:hover, .value-card:hover, .qa-card:hover, .payment-card:hover { transform: none !important; box-shadow: none !important; }
+.feature-card h3, .value-card h3, .step-title, .qa-label { color: var(--red) !important; }
+.admin-table-wrap { border: 0 !important; border-radius: 0 !important; background: transparent !important; }
+.stat-card { border-top: 2px solid var(--red) !important; }
+.trust-item, .site-footer, footer { background: #fff !important; }
+.topbar-pill { background: var(--red-light) !important; color: var(--red) !important; }
+.btn-white { color: var(--red) !important; }
+
+[class*="hero"] .btn, [class*="banner"] .btn, [class*="cta"] .btn { background:#fff !important; color: var(--red) !important; }
+.cta-section .btn-outline, .contact-cta .btn-outline, [class*="banner"] .btn-outline {
+  color: #fff !important; border-color: rgba(255,255,255,0.5) !important; }
+.cta-section .btn-outline:hover, .contact-cta .btn-outline:hover { background: rgba(255,255,255,0.12) !important; }
+.section-title, .section-header h2 { color: var(--red) !important; }
+
+/* v3: tabs — white bar, clicked tab turns solid red with white text */
+.tabs { background: #fff !important; border: 1px solid var(--hairline) !important; }
+.tab-btn { background: transparent !important; color: var(--muted) !important; }
+.tab-btn:hover { color: var(--red) !important; }
+.tab-btn.active { background: var(--red) !important; color: #fff !important; }
+
+/* v3: brand logo for emphasis */
+.hero-logo { display: block; width: 190px; max-width: 62%; height: auto; margin: 0 auto 26px; animation: fadeDown .65s ease both; }
+.modal-logo img, .sidebar-brand img, .footer-brand img { display: block; }
+
+/* v5: brand banner from the real logo artwork, and the photo red as the UI color */
+.site-banner { display: block; width: 100%; background: var(--red); line-height: 0; border-bottom: 1px solid var(--hairline); }
+.site-banner img { display: block; width: 100%; height: 200px; object-fit: contain; }
+.hero-logo { display: none !important; }
+.page-banner {
+  background: #fff !important; color: var(--text) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+  padding: 44px 0 22px !important; margin-bottom: 10px !important;
+  border-bottom: 1px solid var(--hairline) !important;
+}
+.page-banner h1 { color: var(--red) !important; text-shadow: none !important; }
+.page-banner p { color: var(--text-sub) !important; }
+.brand-icon { border-radius: 10px !important; box-shadow: none !important; overflow: hidden; }
+.brand-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- v6: white hero so the banner reads as its own band ---------- */
+#logo-fallback { display: none !important; }
+
+.hero-lp { background: #fff !important; padding: 78px 24px 62px !important; }
+.hero-lp h1 { color: var(--text) !important; }
+.hero-lp h1 em { color: var(--red) !important; }
+.hero-lp p { color: var(--text-sub) !important; }
+
+.hero-pill {
+  background: var(--red-light) !important;
+  border: 1px solid var(--red-border) !important;
+  color: var(--red) !important;
+}
+.hero-pill span { background: var(--red) !important; box-shadow: 0 0 0 3px var(--red-soft) !important; }
+
+.hero-badge {
+  background: #fff !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-sub) !important;
+}
+
+.hero-actions .btn { background: var(--red) !important; color: #fff !important; box-shadow: none !important; }
+.hero-actions .btn:hover { background: var(--red-dark) !important; }
+.hero-actions .btn-outline {
+  background: #fff !important;
+  color: var(--red) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+.hero-actions .btn-outline:hover { border-color: var(--red) !important; background: var(--red-light) !important; }
+
+/* ---------- v7: compact header on phones ---------- */
+@media (max-width: 640px) {
+    .nav-container { padding: 0 12px; gap: 8px; height: 58px; }
+    .brand { font-size: 0; gap: 0; }
+    .brand-icon { width: 34px; height: 34px; }
+    .site-nav .btn, .site-nav .btn-ghost { padding: 7px 12px; font-size: 12.5px; white-space: nowrap; }
+    .nav-toggle { padding: 6px 9px; }
+    .site-banner { border-bottom-width: 1px; }
+    .site-banner img { height: 130px; }
+}
+
+@media (max-width: 400px) {
+    .nav-container { gap: 6px; padding: 0 10px; }
+    .site-nav .btn, .site-nav .btn-ghost { padding: 7px 9px; font-size: 12px; }
+    .nav-toggle { padding: 6px 8px; }
+    .brand-icon { width: 32px; height: 32px; }
+}
+
+/* ---------- v8: admin sidebar legibility ---------- */
+.sidebar-section { color: rgba(255, 255, 255, 0.72) !important; }
+.sidebar-link:not(.active) { color: rgba(255, 255, 255, 0.92) !important; }
+.sidebar-sub { color: rgba(255, 255, 255, 0.8) !important; }
+
+/* ---------- v9: the red envelops the banner + hero and ends at the trust bar ---------- */
+.site-banner { border-bottom: none !important; }
+
+.hero-lp {
+  background: var(--red) !important;
+  padding: 64px 24px 84px !important;
+}
+.hero-lp h1 { color: #fff !important; }
+.hero-lp h1 em { color: rgba(255, 255, 255, 0.62) !important; }
+.hero-lp p { color: rgba(255, 255, 255, 0.88) !important; }
+
+.hero-pill {
+  background: #fff !important;
+  border-color: #fff !important;
+  color: var(--red) !important;
+}
+.hero-pill span { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3) !important; }
+
+.hero-badge {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.hero-actions .btn { background: #fff !important; color: var(--red) !important; }
+.hero-actions .btn:hover { background: var(--red-light) !important; }
+.hero-actions .btn-outline {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+}
+.hero-actions .btn-outline:hover { background: rgba(255, 255, 255, 0.12) !important; }
+
+@media (max-width: 640px) {
+  .hero-lp { padding: 46px 18px 62px !important; }
+}
+
+/* v10: footer restored — red band with white text */
+footer, .lp-footer, .site-footer { background: var(--red) !important; color: #fff !important; }
+footer p, footer li, footer span, footer a, footer h4, footer h5, footer .footer-tagline, footer .footer-copy { color: rgba(255,255,255,0.88) !important; }
+footer h4, footer h5, footer .footer-col h4 { color: #fff !important; }
+footer a:hover { color: #fff !important; }
+footer .footer-divider { background: rgba(255,255,255,0.25) !important; }
+footer .footer-brand img { filter: brightness(0) invert(1); }
