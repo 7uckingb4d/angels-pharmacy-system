@@ -1310,3 +1310,70 @@ body > footer {
   .topbar-pill { white-space: nowrap; font-size: 10.5px !important; padding: 5px 9px !important; }
   .topbar-title { font-size: 18px !important; }
 }
+
+/* =====================================================================
+   v3 — banner as a soft background (no more full banner strip on every
+   page) + About page grids that fill the row on phones and desktop
+   ===================================================================== */
+:root {
+  --banner-art: url("../assets/banner.jpg");
+  /* how strongly the banner shows through (lower = more visible) */
+  --banner-veil-red: .86;
+  --banner-veil-light: .93;
+}
+
+/* Red page headers: the banner artwork sits underneath a red veil */
+.page-banner, .catalog-hero, .wrap > .hero {
+  background:
+    var(--pat-plus-light),
+    radial-gradient(520px 280px at 90% 120%, rgba(255, 197, 51, .3), transparent 70%),
+    linear-gradient(120deg,
+      rgba(227, 22, 28, var(--banner-veil-red)),
+      rgba(200, 1, 4, var(--banner-veil-red)) 55%,
+      rgba(160, 0, 3, calc(var(--banner-veil-red) + .06))),
+    var(--banner-art) center / cover no-repeat,
+    var(--red) !important;
+}
+
+/* Landing hero (white): the banner shows as a faint watermark */
+.hero-lp {
+  background:
+    radial-gradient(600px 300px at 8% 18%, rgba(255, 197, 51, .22), transparent 70%),
+    radial-gradient(700px 360px at 95% 90%, rgba(200, 1, 4, .09), transparent 70%),
+    var(--pat-dots-red),
+    linear-gradient(rgba(255, 255, 255, var(--banner-veil-light)), rgba(255, 255, 255, calc(var(--banner-veil-light) + .04))),
+    var(--banner-art) center / cover no-repeat,
+    #fff !important;
+}
+
+/* Mission values: 4 across on desktop, 2 across on tablets and phones */
+.value-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+.value-grid .value-card { height: 100%; }
+
+@media (max-width: 900px) {
+  .value-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .value-grid { gap: 10px; }
+  .value-card {
+    padding: 64px 14px 16px !important;
+    background-position: 14px 14px !important;
+    background-size: 40px 40px !important;
+    border-radius: 18px !important;
+  }
+  .value-card .title { font-size: 15px !important; line-height: 1.25 !important; }
+  .value-card .desc { font-size: 12.5px !important; line-height: 1.45 !important; }
+
+  /* the three About stats stay on one row instead of 2 + 1 */
+  .about-stat-row { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .about-stat { padding: 16px 6px !important; }
+  .about-stat-num { font-size: 26px !important; }
+  .about-stat-label { font-size: 11px !important; line-height: 1.3 !important; }
+
+  .mission-quote p { font-size: 18px !important; }
+}

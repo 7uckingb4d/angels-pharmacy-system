@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 import { requireAdmin } from '../middleware/auth-middleware.js';
 import { productImageUpload, IMAGE_TYPES } from '../middleware/upload.js';
-import { isUuid, parseBoolean, serializeProduct, sendRpcError } from '../lib/helpers.js';
+import { isUuid, parseBoolean, serializeProduct, sendRpcError, diagnoseDbError } from '../lib/helpers.js';
 
 const router = Router();
 const BUCKET = 'product-images';
@@ -24,24 +24,40 @@ const removeImage = (path) => supabaseAdmin.storage.from(BUCKET).remove([path]).
 const storagePathFromUrl = (url) => url?.split(`/${BUCKET}/`)[1] || null;
 
 /* ── LIST (public, active only) ──────────────────────────────────── */
-router.get('/', async (req, res) => {
-  const { search, category, requires_rx, same_day } = req.query;
-  const byName = category && !isUuid(category);
-
-  let query = supabaseAdmin
-    .from('Product')
-    .select(byName ? '*, Category!inner(category_name)' : SELECT)
-    .eq('is_active', true)
-    .order('name');
-
+function buildListQuery(select, { search, category, requires_rx, same_day }, byName) {
+  let query = supabaseAdmin.from('Product').select(select).eq('is_active', true).order('name');
   if (search) query = query.ilike('name', `%${String(search).replace(/[%,]/g, ' ')}%`);
-  if (category) query = byName ? query.eq('Category.category_name', category) : query.eq('category_id', category);
+  if (category && !byName) query = query.eq('category_id', category);
+  if (category && byName && select.includes('!inner')) query = query.eq('Category.category_name', category);
   if (requires_rx !== undefined) query = query.eq('requires_rx', requires_rx === 'true');
   if (same_day !== undefined) query = query.eq('same_day', same_day === 'true');
+  return query;
+}
 
-  const { data, error } = await query;
+router.get('/', async (req, res) => {
+  const { category } = req.query;
+  const byName = Boolean(category && !isUuid(category));
+
+  let { data, error } = await buildListQuery(byName ? '*, Category!inner(category_name)' : SELECT, req.query, byName);
+
+  // If the Product→Category link is unavailable, still show medicines: load both tables and join here.
+  if (error && (error.code === 'PGRST200' || /relationship/i.test(error.message || ''))) {
+    console.warn('Category join unavailable, falling back to manual join:', error.message);
+    const [products, cats] = await Promise.all([
+      buildListQuery('*', req.query, false),
+      supabaseAdmin.from('Category').select('category_id, category_name'),
+    ]);
+    error = products.error || cats.error;
+    if (!error) {
+      const names = new Map((cats.data || []).map(c => [c.category_id, c.category_name]));
+      data = products.data
+        .map(p => ({ ...p, Category: { category_name: names.get(p.category_id) ?? null } }))
+        .filter(p => !byName || p.Category.category_name === category);
+    }
+  }
+
   if (error) {
-    console.error('Medicines list error:', error);
+    console.error('Medicines list error:', error, '→', diagnoseDbError(error));
     return res.status(500).json({ error: 'Unable to load medicines.' });
   }
   return res.json(data.map(serializeProduct));
@@ -51,7 +67,10 @@ router.get('/', async (req, res) => {
 router.get('/categories', async (_req, res) => {
   const { data, error } = await supabaseAdmin
     .from('Category').select('category_id, category_name').eq('is_active', true).order('category_name');
-  if (error) return res.status(500).json({ error: 'Unable to load categories.' });
+  if (error) {
+    console.error('Categories error:', error, '→', diagnoseDbError(error));
+    return res.status(500).json({ error: 'Unable to load categories.' });
+  }
   return res.json(data);
 });
 

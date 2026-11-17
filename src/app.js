@@ -12,6 +12,8 @@ import medicinesRoutes from './routes/medicines.js';
 import ordersRoutes from './routes/orders.js';
 import prescriptionsRoutes from './routes/prescriptions.js';
 import adminRoutes from './routes/admin.js';
+import { supabaseAdmin, config as dbConfig } from './config/supabase.js';
+import { diagnoseDbError } from './lib/helpers.js';
 
 const app = express();
 app.set('trust proxy', 1); // Vercel sits behind a proxy; needed for correct client IPs.
@@ -36,8 +38,39 @@ app.post('/api/admin/contacts', limiter(60 * 60 * 1000, 10, 'Too many messages. 
 
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', project: "Angel's Pharmacy", time: new Date().toISOString() });
+// Health + database self-check. Open /api/health in a browser to see what is wrong (no secrets shown).
+app.get('/api/health', async (_req, res) => {
+  const config = {
+    supabase_url_ok: dbConfig.urlLooksValid,
+    secret_key_type: dbConfig.secretKind,          // should be "secret" or "legacy-service_role"
+    publishable_key_type: dbConfig.publishableKind, // should be "publishable" or "legacy-anon"
+  };
+  const problems = [];
+  if (!dbConfig.urlLooksValid) problems.push('SUPABASE_URL should look like https://<project-ref>.supabase.co');
+  if (!['secret', 'legacy-service_role'].includes(dbConfig.secretKind)) {
+    problems.push('SUPABASE_SECRET_KEY is not a secret/service_role key (it looks like: ' + dbConfig.secretKind + ').');
+  }
+
+  const checks = {};
+  for (const table of ['Category', 'Product', 'Profiles']) {
+    try {
+      const { count, error } = await supabaseAdmin.from(table).select('*', { count: 'exact', head: true });
+      checks[table] = error ? { ok: false, code: error.code || null, fix: diagnoseDbError(error) } : { ok: true, rows: count ?? 0 };
+    } catch (e) {
+      checks[table] = { ok: false, code: null, fix: diagnoseDbError(e) };
+    }
+  }
+  const dbOk = Object.values(checks).every(c => c.ok);
+  if (dbOk && checks.Product.rows === 0) problems.push('No medicines yet — add some in the admin panel.');
+
+  res.status(dbOk ? 200 : 503).json({
+    status: dbOk ? 'ok' : 'database_error',
+    project: "Angel's Pharmacy",
+    time: new Date().toISOString(),
+    config,
+    database: checks,
+    problems,
+  });
 });
 
 app.use('/api/auth', authRoutes);

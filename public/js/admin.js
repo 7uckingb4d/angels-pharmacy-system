@@ -381,7 +381,8 @@ function renderPosProducts(filter = '') {
     }
     grid.innerHTML = list.map(m => `
     <button class="pos-product-btn ${m.requires_rx ? 'rx-item' : ''}"
-            onclick="addToPosCart('${m.medicine_id}', ${JSON.stringify(m.name).replace(/'/g, "\\'")} , ${m.unit_price}, ${m.requires_rx})">
+            data-id="${esc(m.medicine_id)}" data-name="${esc(m.name)}" data-price="${m.unit_price}" data-rx="${m.requires_rx ? '1' : ''}"
+            onclick="addToPosCart(this.dataset.id, this.dataset.name, this.dataset.price, this.dataset.rx === '1')">
       <span class="pos-product-badge ${m.requires_rx ? 'status-pill pending' : 'status-pill verified'}">${m.requires_rx ? 'Rx' : 'OTC'}</span>
       <span class="pos-product-name">${esc(m.name)}</span>
       <span class="pos-product-price">₱${parseFloat(m.unit_price).toFixed(2)}</span>

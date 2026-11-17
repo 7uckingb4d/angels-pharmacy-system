@@ -46,4 +46,10 @@ also need to install a container engine such as Docker or Podman, however **Dock
 
 Local run: copy `.env.example` to `.env`, then `npm install && npm run dev`.
 
+**3. Catalog says "Unable to load medicines"?** Open `https://<your-site>/api/health`.
+It tests the database and tells you exactly what to fix (wrong key, missing tables,
+missing permissions) without showing any secrets. Most fixes: paste
+`supabase/migrations/20261117120000_permissions_repair.sql` into the Supabase SQL editor
+and press Run, or correct the keys in Vercel → Settings → Environment Variables and redeploy.
+
 Notes: uploads are capped at 4 MB (Vercel's request limit). `/api/*` is served by `api/index.js`; `public/` is served statically.

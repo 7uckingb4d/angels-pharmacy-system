@@ -29,3 +29,17 @@ Only the look changes.
   out in homepage.html. Pre-existing, left alone.
 
 Backend, API routes, database, auth flow, form fields and IDs: untouched.
+
+## v3 (Nov 17)
+- Banner strip removed from every page. The banner artwork now sits as a soft
+  background inside the red page headers and behind the landing hero
+  (`--banner-veil-*` in theme.css controls how visible it is).
+- About → Our Mission: value cards are 4 across on desktop, 2 across on phones
+  (no more empty space). The three About stats stay on one row on phones.
+- admin.js POS product buttons fixed (names now passed via data attributes).
+- homepage.js "Request Verification" no longer needs the commented-out branch
+  picker, and uses Auth.fetch so an expired login refreshes automatically.
+- Backend: `/api/health` now checks the database and explains the fix; env values
+  are cleaned of stray quotes/spaces/`/rest/v1`; the catalog falls back to a manual
+  category join; new repair migration grants permissions and adds starter
+  medicines when the catalog is empty.

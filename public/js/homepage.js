@@ -195,7 +195,6 @@ document.getElementById('request-verification')?.addEventListener('click', async
     const branchEl = document.querySelector('input[name="branch"]:checked');
 
     if (!file) { showToast('Please select a prescription file first.'); return; }
-    if (!branchEl) { showToast('Please select a branch first.'); return; }
 
     this.disabled = true;
     this.textContent = 'Uploading…';
@@ -210,12 +209,8 @@ document.getElementById('request-verification')?.addEventListener('click', async
         formData.append('prescription', file);
         /*formData.append('branch_id', branchMap[branchEl.value]);*/
 
-        const token = sessionStorage.getItem('ap_access_token');
-        const res = await fetch('/api/prescriptions', {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: formData,
-        });
+        // Auth.fetch adds the login token and refreshes it if it has expired.
+        const res = await Auth.fetch('/prescriptions', { method: 'POST', body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed.');
 
