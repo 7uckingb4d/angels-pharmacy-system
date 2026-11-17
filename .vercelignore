@@ -1,0 +1,7 @@
+supabase/
+.github/
+schema.sql
+README.md
+.vscode/
+postgres-language-server.jsonc
+node_modules
