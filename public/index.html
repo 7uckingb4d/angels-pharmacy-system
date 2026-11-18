@@ -17,6 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
@@ -71,7 +72,7 @@
     <div class="trust-bar">
         <div class="trust-track">
             <div class="trust-item">
-                DOH Licensed — PH-123456
+                DOH Licensed — <span data-setting="license_no">PH-123456</span>
             </div>
             <div class="trust-item">
                 100% Pharmacist-Verified Orders
@@ -87,7 +88,7 @@
             </div> -->
             <!-- duplicate for seamless loop -->
             <div class="trust-item">
-                DOH Licensed — PH-123456
+                DOH Licensed — <span data-setting="license_no">PH-123456</span>
             </div>
             <div class="trust-item">
                 100% Pharmacist-Verified Orders
@@ -260,7 +261,7 @@
                 </div>
             </div>
             <div class="footer-divider"></div>
-            <p class="footer-copy">© <span id="yr"></span> Angel's Pharmacy — License No: PH-123456 &nbsp;·&nbsp;
+            <p class="footer-copy">© <span id="yr"></span> Angel's Pharmacy — License No: <span data-setting="license_no">PH-123456</span> &nbsp;·&nbsp;
                 Valenzuela City</p>
         </div>
     </footer>

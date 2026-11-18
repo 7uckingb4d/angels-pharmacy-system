@@ -4,6 +4,8 @@ import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
 import { requireAuth, requireStaff, ADMIN_ROLES, STAFF_ROLES } from '../middleware/auth-middleware.js';
 import { isUuid, sendRpcError } from '../lib/helpers.js';
+import { orderingBlocked } from '../lib/settings.js';
+import { getSettings } from '../lib/settings-store.js';
 
 const router = Router();
 const STATUSES = ['pending', 'confirmed', 'ready', 'completed', 'cancelled'];
@@ -20,6 +22,9 @@ const withImage = (order) => ({
 /* ── PLACE ORDER ─────────────────────────────────────────────────── */
 router.post('/', requireAuth, async (req, res) => {
   const { items, prescription_id, notes } = req.body ?? {};
+  if (orderingBlocked(await getSettings(), req.profile.role)) {
+    return res.status(503).json({ error: 'Online orders are paused right now. Please visit or call the pharmacy.' });
+  }
 
   if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
     return res.status(400).json({ error: 'items must contain between 1 and 50 entries.' });

@@ -35,6 +35,40 @@ const Auth = (() => {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
     }
 
+    /* ── SAFE JSON ─────────────────────────────────────────────────── */
+    /* A network hiccup, VPN, or hosting error page can return HTML instead of
+       JSON. Never show "Unexpected token '<'" — return a readable error.   */
+
+    const SERVER_DOWN_MSG = "We couldn't reach the server. Check your connection (turn off VPN or data saver if it's on) and try again.";
+
+    async function readJson(res) {
+        const type = res.headers.get('content-type') || '';
+        if (!type.includes('application/json')) return { __notJson: true, error: SERVER_DOWN_MSG };
+        try { return await res.json(); }
+        catch { return { __notJson: true, error: SERVER_DOWN_MSG }; }
+    }
+
+    // POST JSON; if the reply is not JSON (temporary error page), wait and try once more.
+    async function postJson(path, body) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            let res;
+            try {
+                res = await fetch(`${API}${path}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(body),
+                    cache: 'no-store',
+                });
+            } catch {
+                if (attempt === 0) { await new Promise(r => setTimeout(r, 900)); continue; }
+                throw new Error(SERVER_DOWN_MSG);
+            }
+            const data = await readJson(res);
+            if (data.__notJson && attempt === 0) { await new Promise(r => setTimeout(r, 900)); continue; }
+            return { res, data };
+        }
+    }
+
     /* ── API HELPER ────────────────────────────────────────────────── */
 
     async function apiFetch(path, options = {}) {
@@ -76,13 +110,10 @@ const Auth = (() => {
         if (!refresh_token) return false;
 
         try {
-            const res = await fetch(`${API}/auth/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token }),
-            });
+            const { res, data } = await postJson('/auth/refresh', { refresh_token });
+            if (data.__notJson) return false; // server hiccup: keep the session, try again later
             if (!res.ok) { clearTokens(); return false; }
-            const { access_token, refresh_token: new_refresh } = await res.json();
+            const { access_token, refresh_token: new_refresh } = data;
             saveTokens(access_token, new_refresh);
             return true;
         } catch {
@@ -104,13 +135,8 @@ const Auth = (() => {
         if (password !== confirmPassword)
             throw new Error('Passwords do not match. Please try again.');
 
-        const res = await fetch(`${API}/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_name, email, phone, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Sign up failed.');
+        const { res, data } = await postJson('/auth/signup', { full_name, email, phone, password });
+        if (data.__notJson || !res.ok) throw new Error(data.error || 'Sign up failed.');
         return data;
     }
 
@@ -122,13 +148,8 @@ const Auth = (() => {
         if (!email || !password)
             throw new Error('Email and password are required.');
 
-        const res = await fetch(`${API}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login failed.');
+        const { res, data } = await postJson('/auth/login', { email, password });
+        if (data.__notJson || !res.ok) throw new Error(data.error || 'Login failed.');
 
         saveTokens(data.access_token, data.refresh_token);
         saveUser(data.user);
@@ -230,6 +251,7 @@ const Auth = (() => {
         roleLabel,
         homeFor,
         fetch: apiFetch,   // authenticated fetch for use in other scripts
+        readJson,          // safe res.json() that never throws on HTML replies
     };
 
 })();

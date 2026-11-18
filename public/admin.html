@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
@@ -24,6 +25,7 @@
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
+                <button type="button" class="sidebar-close" onclick="toggleSidebar()" aria-label="Close menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                 <img src="assets/logo-white.png" alt="Angel's Pharmacy" style="width:120px;height:auto;margin-bottom:10px;" />
                 <div class="sidebar-title">Angel's Pharmacy</div>
                 <div class="sidebar-sub" id="panel-role-label">Admin Panel</div>
@@ -326,42 +328,80 @@
                 <!-- SETTINGS -->
                 <div class="admin-panel" id="panel-settings">
                     <div class="section-header">
-                        <h2>System Settings</h2>
+                        <h2>Settings</h2>
                     </div>
-                    <div class="card" style="max-width:600px;">
-                        <h3 style="margin:0 0 16px;font-size:15px;">Pharmacy Details</h3>
-                        <div class="info-row">
-                            <div>
-                                <div class="info-label">License</div>
-                                <div class="info-value">PH-123456</div>
-                            </div>
-                        </div>
-                        <div class="info-row">
-                            <div>
-                                <div class="info-label">Location</div>
-                                <div class="info-value">Valenzuela City</div>
-                            </div>
-                        </div>
-                        <div class="info-row">
-                            <div>
-                                <div class="info-label">Regulatory Body</div>
-                                <div class="info-value">Department of Health (DOH), Philippines</div>
-                            </div>
-                        </div>
+                    <div id="settings-setup-note" class="settings-note" hidden>
+                        Settings can't be saved yet. Run <strong>supabase/migrations/20261118120000_settings.sql</strong>
+                        in the Supabase SQL Editor once, then reload this page.
                     </div>
-                    <div class="card" style="max-width:600px;margin-top:16px;">
-                        <h3 style="margin:0 0 16px;font-size:15px;">Account Details</h3>
-                        <div class="info-row">
-                            <div>
-                                <div class="info-label">Email</div>
-                                <div class="info-value" id="settings-email">—</div>
+
+                    <div class="settings-grid">
+                        <!-- Pharmacy details + store options (admin edits; others view) -->
+                        <form class="card settings-card" id="settings-form" onsubmit="event.preventDefault(); saveSettings()">
+                            <div class="settings-card-head">
+                                <h3>Pharmacy Details</h3>
+                                <span class="settings-badge" id="settings-readonly-badge" hidden>View only</span>
                             </div>
-                        </div>
-                        <div class="info-row">
-                            <div>
-                                <div class="info-label">Role</div>
-                                <div class="info-value" id="settings-role">—</div>
+                            <p class="settings-help">Shown on the Contact page and used across the system.</p>
+                            <div class="settings-fields">
+                                <label class="settings-field"><span>Pharmacy name</span><input id="set-pharmacy_name" maxlength="120" required /></label>
+                                <label class="settings-field"><span>License number</span><input id="set-license_no" maxlength="60" required /></label>
+                                <label class="settings-field settings-wide"><span>Location / address</span><input id="set-location" maxlength="200" required /></label>
+                                <label class="settings-field settings-wide"><span>Regulatory body</span><input id="set-regulatory_body" maxlength="120" required /></label>
+                                <label class="settings-field"><span>Contact email</span><input id="set-contact_email" type="email" maxlength="160" required /></label>
+                                <label class="settings-field"><span>Contact phone</span><input id="set-contact_phone" type="tel" maxlength="30" required /></label>
                             </div>
+
+                            <h3 class="settings-sub">Operating Hours</h3>
+                            <div class="settings-fields">
+                                <label class="settings-field"><span>Monday – Friday</span><input id="set-hours_weekday" maxlength="60" required /></label>
+                                <label class="settings-field"><span>Saturday</span><input id="set-hours_saturday" maxlength="60" required /></label>
+                                <label class="settings-field"><span>Sunday</span><input id="set-hours_sunday" maxlength="60" required /></label>
+                            </div>
+
+                            <h3 class="settings-sub">Store Options</h3>
+                            <div class="settings-fields">
+                                <label class="settings-field"><span>Low-stock alert (items left)</span><input id="set-low_stock_threshold" type="number" min="0" max="1000" step="1" inputmode="numeric" required /></label>
+                                <label class="settings-toggle settings-wide">
+                                    <input id="set-accepting_orders" type="checkbox" />
+                                    <span><strong>Accept online orders</strong><small>Turn off to pause customer orders. The POS still works.</small></span>
+                                </label>
+                            </div>
+
+                            <div class="settings-actions">
+                                <span class="settings-msg" id="settings-msg" role="status" aria-live="polite"></span>
+                                <button type="submit" class="btn" id="settings-save-btn">Save Settings</button>
+                            </div>
+                        </form>
+
+                        <div class="settings-side">
+                            <!-- My account (every staff role) -->
+                            <form class="card settings-card" id="account-form" onsubmit="event.preventDefault(); saveAccount()">
+                                <h3>My Account</h3>
+                                <div class="settings-fields settings-one">
+                                    <label class="settings-field"><span>Email</span><input id="settings-email" disabled /></label>
+                                    <label class="settings-field"><span>Role</span><input id="settings-role" disabled /></label>
+                                    <label class="settings-field"><span>Full name</span><input id="acc-name" maxlength="150" required /></label>
+                                    <label class="settings-field"><span>Phone</span><input id="acc-phone" type="tel" maxlength="30" placeholder="09XX XXX XXXX" /></label>
+                                </div>
+                                <div class="settings-actions">
+                                    <span class="settings-msg" id="account-msg" role="status" aria-live="polite"></span>
+                                    <button type="submit" class="btn" id="account-save-btn">Save Profile</button>
+                                </div>
+                            </form>
+
+                            <form class="card settings-card" id="password-form" onsubmit="event.preventDefault(); changePassword()">
+                                <h3>Change Password</h3>
+                                <div class="settings-fields settings-one">
+                                    <label class="settings-field"><span>Current password</span><input id="pw-current" type="password" autocomplete="current-password" required /></label>
+                                    <label class="settings-field"><span>New password</span><input id="pw-new" type="password" minlength="6" autocomplete="new-password" placeholder="At least 6 characters" required /></label>
+                                    <label class="settings-field"><span>Confirm new password</span><input id="pw-confirm" type="password" minlength="6" autocomplete="new-password" required /></label>
+                                </div>
+                                <div class="settings-actions">
+                                    <span class="settings-msg" id="password-msg" role="status" aria-live="polite"></span>
+                                    <button type="submit" class="btn" id="password-save-btn">Change Password</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
@@ -51,7 +52,7 @@
                 <h2>Need immediate assistance?</h2>
                 <p>Visit us in person in Valenzuela City, or send us a message below.</p>
             </div>
-            <a href="mailto:caronanmj4@gmail.com" class="btn-white" style="position:relative;z-index:1;">Email Us
+            <a href="mailto:caronanmj4@gmail.com" data-setting-mailto="contact_email" class="btn-white" style="position:relative;z-index:1;">Email Us
                 Directly</a>
         </div>
 
@@ -66,9 +67,9 @@
                         <div>
                             <div class="info-label">Email</div>
                             <div class="info-value">
-                                <a href="mailto:caronanmj4@gmail.com"
+                                <a href="mailto:caronanmj4@gmail.com" data-setting-mailto="contact_email"
                                     style="color:var(--red);text-decoration:none;font-weight:600;">
-                                    caronanmj4@gmail.com
+                                    <span data-setting="contact_email">caronanmj4@gmail.com</span>
                                 </a>
                             </div>
                         </div>
@@ -76,7 +77,7 @@
                     <div class="info-row">
                         <div>
                             <div class="info-label">Phone / Mobile</div>
-                            <div class="info-value">09563868022</div>
+                            <div class="info-value" data-setting="contact_phone">09563868022</div>
                         </div>
                     </div>
                 </div>
@@ -86,19 +87,19 @@
                     <div class="info-row">
                         <div>
                             <div class="info-label">Monday – Friday</div>
-                            <div class="info-value">8:00 AM – 6:00 PM</div>
+                            <div class="info-value" data-setting="hours_weekday">8:00 AM – 6:00 PM</div>
                         </div>
                     </div>
                     <div class="info-row">
                         <div>
                             <div class="info-label">Saturday</div>
-                            <div class="info-value">8:00 AM – 12:00 PM</div>
+                            <div class="info-value" data-setting="hours_saturday">8:00 AM – 12:00 PM</div>
                         </div>
                     </div>
                     <div class="info-row">
                         <div>
                             <div class="info-label">Sunday</div>
-                            <div class="info-value">Closed</div>
+                            <div class="info-value" data-setting="hours_sunday">Closed</div>
                         </div>
                     </div>
                     <div class="divider"></div>

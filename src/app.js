@@ -12,6 +12,7 @@ import medicinesRoutes from './routes/medicines.js';
 import ordersRoutes from './routes/orders.js';
 import prescriptionsRoutes from './routes/prescriptions.js';
 import adminRoutes from './routes/admin.js';
+import settingsRoutes from './routes/settings.js';
 import { supabaseAdmin, config as dbConfig } from './config/supabase.js';
 import { diagnoseDbError } from './lib/helpers.js';
 
@@ -33,6 +34,7 @@ const limiter = (windowMs, limit, message) =>
 
 app.use('/api', limiter(15 * 60 * 1000, 600, 'Too many requests. Please try again later.'));
 app.use('/api/auth/login', limiter(15 * 60 * 1000, 20, 'Too many login attempts. Please wait 15 minutes.'));
+app.use('/api/auth/password', limiter(15 * 60 * 1000, 10, 'Too many password attempts. Please wait 15 minutes.'));
 app.use('/api/auth/signup', limiter(60 * 60 * 1000, 20, 'Too many sign-ups from this network. Try again later.'));
 app.post('/api/admin/contacts', limiter(60 * 60 * 1000, 10, 'Too many messages. Please try again later.'));
 
@@ -78,6 +80,7 @@ app.use('/api/medicines', medicinesRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/prescriptions', prescriptionsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route not found.' }));
 

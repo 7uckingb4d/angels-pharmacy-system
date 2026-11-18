@@ -60,3 +60,28 @@ Backend, API routes, database, auth flow, form fields and IDs: untouched.
 - **OCR works** — "View OCR" reads text from a prescription photo (Tesseract.js, loaded on demand) and highlights matching catalog medicines. PDFs are read by the pharmacist.
 - Fixed: hidden admin menu items still showed for staff (theme `!important` beat the hide).
 - Tests: `npm test` checks who can do what per role.
+
+## v5 — phone fixes, login fix, working Settings
+
+- **Phone layout fixed on every page.** The top bar was wider than a phone screen,
+  which made the whole site zoom out and cut off buttons. New `public/css/mobile.css`
+  (loaded last on every page): top bar is now logo | one button | ☰, "Log In" moves into
+  the ☰ menu on phones, pop-ups fit the screen, the "Login Required" buttons stack,
+  and nothing can push the page sideways anymore.
+- **Admin panel on phones:** tables (Orders, Products, Prescriptions, Users) turn into
+  cards so every column and button is visible. The side menu has a close (×) button.
+- **Login error "Unexpected token '<' … is not valid JSON" fixed.** The server was fine;
+  the phone sometimes got an error page instead of a reply (VPN / weak signal / hosting
+  hiccup). Login, sign-up and session refresh now retry once and show a plain message.
+- **Settings now actually save.** Admin → Settings has:
+  - Pharmacy details (name, license, location, regulatory body, contact email/phone)
+  - Operating hours (Mon–Fri, Sat, Sun)
+  - Low-stock alert number (used by the dashboard + inventory)
+  - "Accept online orders" switch (off = customers can't order; POS still works)
+  - My Account (edit your name/phone) and Change Password — for every staff role.
+  Only admins can change pharmacy details; pharmacist/counter see them as view-only.
+  Contact, About, landing and customer home pages show the saved details automatically.
+- **Run `supabase/migrations/20261118120000_settings.sql` in the Supabase SQL Editor once**
+  so settings can be saved. Until then the page shows a yellow note and the old values.
+- New API: `GET /api/settings` (public), `PUT /api/settings` (admin),
+  `POST /api/auth/password` (signed in). Tests: `npm test` (now also checks settings rules).

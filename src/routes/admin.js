@@ -7,11 +7,14 @@ import { ROLE_LIST, normalizeRole } from '../lib/roles.js';
 import { isUuid, serializeProduct, sendRpcError } from '../lib/helpers.js';
 
 const router = Router();
-const LOW_STOCK = Number(process.env.LOW_STOCK_THRESHOLD) || 10;
+import { getSettings } from '../lib/settings-store.js';
+
+const lowStockLimit = async () => (await getSettings()).low_stock_threshold;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ── DASHBOARD ───────────────────────────────────────────────────── */
 router.get('/dashboard', requireStaff, async (_req, res) => {
+  const LOW_STOCK = await lowStockLimit();
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const [orders, pendingRx, lowStock, revenue] = await Promise.all([
     supabaseAdmin.from('Order').select('status'),
@@ -43,6 +46,7 @@ router.get('/products', requirePharmacy, async (_req, res) => {
 
 /* ── INVENTORY ───────────────────────────────────────────────────── */
 router.get('/inventory', requirePharmacy, async (_req, res) => {
+  const LOW_STOCK = await lowStockLimit();
   const { data, error } = await supabaseAdmin.from('Product')
     .select('product_id, name, stock_quantity, price, is_active, Category(category_name)')
     .order('stock_quantity', { ascending: true });

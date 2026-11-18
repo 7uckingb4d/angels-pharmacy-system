@@ -79,6 +79,24 @@ router.post('/logout', requireAuth, async (req, res) => {
   return res.json({ message: 'Logged out successfully.' });
 });
 
+router.post('/password', requireAuth, async (req, res) => {
+  const { current_password, new_password } = req.body ?? {};
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Enter your current password and a new password.' });
+  }
+  if (String(new_password).length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+  if (new_password === current_password) return res.status(400).json({ error: 'New password must be different.' });
+
+  const { error: checkError } = await createAnonClient().auth.signInWithPassword({
+    email: req.user.email, password: current_password,
+  });
+  if (checkError) return res.status(400).json({ error: 'Current password is incorrect.' });
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, { password: new_password });
+  if (error) return res.status(400).json({ error: error.message });
+  return res.json({ message: 'Password changed.' });
+});
+
 router.get('/me', requireAuth, (req, res) => {
   const { full_name, phone, role } = req.profile;
   return res.json({ id: req.user.id, uuid: req.user.id, email: req.user.email, full_name, phone, role });

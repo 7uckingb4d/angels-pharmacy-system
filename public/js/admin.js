@@ -87,8 +87,11 @@ async function start() {
     document.getElementById('admin-avatar').textContent = name.charAt(0).toUpperCase();
     document.getElementById('admin-name').textContent = name;
     document.getElementById('admin-email').textContent = label;
-    document.getElementById('settings-email').textContent = _adminUser.email;
-    document.getElementById('settings-role').textContent = label;
+    document.getElementById('settings-email').value = _adminUser.email;
+    document.getElementById('settings-role').value = label;
+    document.getElementById('acc-name').value = _adminUser.full_name || '';
+    document.getElementById('acc-phone').value = _adminUser.phone || '';
+    loadSettings();
 
     await loadDashboard();
     if (isPharmacy) { loadCategories(); loadProducts(); loadPrescriptions(); }
@@ -637,3 +640,117 @@ function showToast(msg, duration = 3500) {
     setTimeout(() => t.classList.remove('show'), duration);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAdminOnly(); });
+
+
+/* ── SETTINGS ── */
+const SETTING_FIELDS = ['pharmacy_name', 'license_no', 'location', 'regulatory_body', 'contact_email',
+    'contact_phone', 'hours_weekday', 'hours_saturday', 'hours_sunday', 'low_stock_threshold'];
+
+function settingsMsg(id, text, ok) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('is-ok', !!ok);
+    el.classList.toggle('is-err', !!text && !ok);
+}
+
+function setBusy(btnId, busy, idleText) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.textContent = busy ? 'Saving…' : idleText;
+}
+
+async function loadSettings() {
+    const form = document.getElementById('settings-form');
+    if (!form) return;
+    let data = {};
+    try {
+        const res = await fetch('/api/settings', { cache: 'no-store' });
+        data = await Auth.readJson(res);
+    } catch { data = { __notJson: true }; }
+    if (data.__notJson) { settingsMsg('settings-msg', 'Could not load settings. Reload to try again.'); return; }
+
+    SETTING_FIELDS.forEach(f => {
+        const el = document.getElementById('set-' + f);
+        if (el && data[f] !== undefined && data[f] !== null) el.value = data[f];
+    });
+    document.getElementById('set-accepting_orders').checked = data.accepting_orders !== false;
+
+    const canEdit = isAdminUser();
+    form.querySelectorAll('input').forEach(i => { i.disabled = !canEdit; });
+    document.getElementById('settings-save-btn').hidden = !canEdit;
+    document.getElementById('settings-readonly-badge').hidden = canEdit;
+    document.getElementById('settings-setup-note').hidden = !(canEdit && data.configured === false);
+}
+
+async function saveSettings() {
+    if (!isAdminUser()) { showAdminOnly('Only admins can change pharmacy settings.'); return; }
+    settingsMsg('settings-msg', '');
+    const body = {};
+    SETTING_FIELDS.forEach(f => { body[f] = document.getElementById('set-' + f).value; });
+    body.low_stock_threshold = Number(body.low_stock_threshold);
+    body.accepting_orders = document.getElementById('set-accepting_orders').checked;
+
+    setBusy('settings-save-btn', true, 'Save Settings');
+    try {
+        const res = await Auth.fetch('/settings', { method: 'PUT', body });
+        const data = await Auth.readJson(res);
+        if (!res.ok || data.__notJson) throw new Error(data.error || 'Unable to save settings.');
+        settingsMsg('settings-msg', 'Saved.', true);
+        document.getElementById('settings-setup-note').hidden = true;
+        showToast('Settings saved.');
+        loadDashboard();
+    } catch (err) {
+        settingsMsg('settings-msg', err.message);
+    } finally {
+        setBusy('settings-save-btn', false, 'Save Settings');
+    }
+}
+
+async function saveAccount() {
+    settingsMsg('account-msg', '');
+    const full_name = document.getElementById('acc-name').value.trim();
+    const phone = document.getElementById('acc-phone').value.trim();
+    if (full_name.length < 2) { settingsMsg('account-msg', 'Full name must be at least 2 characters.'); return; }
+
+    setBusy('account-save-btn', true, 'Save Profile');
+    try {
+        const body = { full_name };
+        if (phone) body.phone = phone;
+        const res = await Auth.fetch('/auth/me', { method: 'PATCH', body });
+        const data = await Auth.readJson(res);
+        if (!res.ok || data.__notJson) throw new Error(data.error || 'Unable to save your profile.');
+        _adminUser = { ..._adminUser, full_name, phone: phone || _adminUser.phone };
+        localStorage.setItem('ap_user', JSON.stringify(_adminUser));
+        document.getElementById('admin-name').textContent = full_name;
+        document.getElementById('admin-avatar').textContent = full_name.charAt(0).toUpperCase();
+        settingsMsg('account-msg', 'Saved.', true);
+    } catch (err) {
+        settingsMsg('account-msg', err.message);
+    } finally {
+        setBusy('account-save-btn', false, 'Save Profile');
+    }
+}
+
+async function changePassword() {
+    settingsMsg('password-msg', '');
+    const current_password = document.getElementById('pw-current').value;
+    const new_password = document.getElementById('pw-new').value;
+    const confirm = document.getElementById('pw-confirm').value;
+    if (new_password.length < 6) { settingsMsg('password-msg', 'New password must be at least 6 characters.'); return; }
+    if (new_password !== confirm) { settingsMsg('password-msg', 'New passwords do not match.'); return; }
+
+    setBusy('password-save-btn', true, 'Change Password');
+    try {
+        const res = await Auth.fetch('/auth/password', { method: 'POST', body: { current_password, new_password } });
+        const data = await Auth.readJson(res);
+        if (!res.ok || data.__notJson) throw new Error(data.error || 'Unable to change password.');
+        document.getElementById('password-form').reset();
+        settingsMsg('password-msg', 'Password changed.', true);
+    } catch (err) {
+        settingsMsg('password-msg', err.message);
+    } finally {
+        setBusy('password-save-btn', false, 'Change Password');
+    }
+}

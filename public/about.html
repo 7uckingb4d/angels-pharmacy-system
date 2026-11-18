@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
@@ -156,20 +157,20 @@
             <div class="compliance-badge">
                 <div>
                     <strong>DOH Licensed Pharmacy</strong>
-                    <span>License No. PH-123456 · Fully compliant with Philippine healthcare regulations</span>
+                    <span>License No. <span data-setting="license_no">PH-123456</span> · Fully compliant with Philippine healthcare regulations</span>
                 </div>
             </div>
             <div class="divider"></div>
             <div class="info-row">
                 <div>
                     <div class="info-label">Regulatory Body</div>
-                    <div class="info-value">Department of Health (DOH), Philippines</div>
+                    <div class="info-value" data-setting="regulatory_body">Department of Health (DOH), Philippines</div>
                 </div>
             </div>
             <div class="info-row">
                 <div>
                     <div class="info-label">Pharmacy License</div>
-                    <div class="info-value">PH-123456</div>
+                    <div class="info-value" data-setting="license_no">PH-123456</div>
                 </div>
             </div>
         </div>
@@ -180,19 +181,19 @@
             <div class="info-row">
                 <div>
                     <div class="info-label">Monday – Friday</div>
-                    <div class="info-value">8:00 AM – 6:00 PM</div>
+                    <div class="info-value" data-setting="hours_weekday">8:00 AM – 6:00 PM</div>
                 </div>
             </div>
             <div class="info-row">
                 <div>
                     <div class="info-label">Saturday</div>
-                    <div class="info-value">8:00 AM – 12:00 PM</div>
+                    <div class="info-value" data-setting="hours_saturday">8:00 AM – 12:00 PM</div>
                 </div>
             </div>
             <div class="info-row">
                 <div>
                     <div class="info-label">Sunday</div>
-                    <div class="info-value">Closed</div>
+                    <div class="info-value" data-setting="hours_sunday">Closed</div>
                 </div>
             </div>
         </div>

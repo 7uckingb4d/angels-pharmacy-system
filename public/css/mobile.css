@@ -1,0 +1,174 @@
+/* =====================================================================
+   mobile.css — phone fixes. Loaded LAST on every page.
+   Layout/presentation only: no data, auth or API changes.
+   ===================================================================== */
+
+/* Nothing may make the page wider than the screen (this was zooming the
+   whole site out and cutting off the top-bar buttons on phones). */
+html, body { max-width: 100%; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+@supports not (overflow: clip) { body { overflow-x: hidden; } }
+img, video, canvas, iframe { max-width: 100%; }
+.trust-bar { overflow: hidden; max-width: 100vw; }
+#cart-drawer { max-width: 100vw; }
+
+/* Login option inside the ☰ menu is only for phones */
+.nav-menu .nav-m-login { display: none; }
+
+/* ── Settings page (all sizes) ─────────────────────────────────────── */
+.settings-note {
+  margin: 0 0 16px; padding: 14px 16px; border-radius: 14px;
+  background: var(--sun-soft); border: 1px solid var(--sun); color: var(--ink); font-size: 13.5px; line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.settings-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.settings-side { display: grid; gap: 18px; }
+.settings-card { margin: 0 !important; }
+.settings-card h3 { margin: 0 0 6px; font-size: 16px; }
+.settings-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.settings-badge {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px;
+  background: var(--red-light); color: var(--red);
+}
+.settings-help { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+.settings-sub { margin: 22px 0 10px !important; font-size: 14px !important; color: var(--text-sub); }
+.settings-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.settings-fields.settings-one { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+.settings-wide { grid-column: 1 / -1; }
+.settings-field { display: grid; gap: 6px; min-width: 0; }
+.settings-field > span { font-size: 12px; font-weight: 700; color: var(--text-sub); }
+.settings-field input {
+  width: 100%; min-width: 0; box-sizing: border-box; font: inherit; font-size: 15px;
+  padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 12px; background: #fff; color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.settings-field input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+.settings-field input:disabled { background: var(--cream); color: var(--text-sub); }
+.settings-toggle {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 14px; background: var(--cream);
+}
+.settings-toggle input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--red); flex-shrink: 0; }
+.settings-toggle strong { display: block; font-size: 14px; }
+.settings-toggle small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.settings-actions .btn { border: 0; cursor: pointer; }
+.settings-actions .btn:disabled { opacity: .6; cursor: wait; }
+.settings-msg { font-size: 13px; font-weight: 600; margin-right: auto; }
+.settings-msg.is-ok { color: var(--mint); }
+.settings-msg.is-err { color: var(--red); }
+@media (max-width: 1000px) { .settings-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Admin side menu close button (phones only) */
+.sidebar-close { display: none; }
+
+/* ── Tablets and phones ────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .sidebar-brand { position: relative; }
+  .sidebar-close {
+    display: flex; align-items: center; justify-content: center; position: absolute; top: 14px; right: 14px;
+    width: 40px; height: 40px; border-radius: 12px; border: 0; cursor: pointer;
+    background: rgba(255, 255, 255, .16); color: #fff;
+  }
+  .sidebar.open { overflow-y: auto !important; }
+}
+
+/* ── Phones ────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Top bar: logo + name | one button | ☰ — always fits the screen */
+  .site-nav .nav-container {
+    display: flex !important; align-items: center !important; flex-wrap: nowrap !important;
+    gap: 8px !important; padding: 0 12px !important; height: 60px !important;
+    max-width: 100% !important; box-sizing: border-box;
+  }
+  .site-nav .brand {
+    flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden;
+    white-space: nowrap; font-size: 16px !important; gap: 8px !important;
+  }
+  .site-nav .brand-icon { width: 34px !important; height: 34px !important; flex-shrink: 0 !important; }
+  .site-nav .nav-actions { order: 2; flex-shrink: 0 !important; gap: 6px !important; margin-left: 0 !important; }
+  .site-nav .nav-toggle {
+    order: 3; flex-shrink: 0 !important; width: 40px; height: 40px; padding: 0 !important;
+    display: inline-flex !important; align-items: center; justify-content: center;
+  }
+  .site-nav .nav-actions .btn,
+  .site-nav .nav-actions .btn-ghost {
+    padding: 8px 13px !important; font-size: 13px !important; white-space: nowrap; line-height: 1.2 !important;
+  }
+  /* "Log In" moves into the ☰ menu; "Log Out" stays in the bar */
+  .site-nav .nav-actions .btn-ghost:not(#logout-btn) { display: none !important; }
+  .nav-menu .nav-m-login { display: block; border-top: 1px solid var(--hairline); margin-top: 4px; padding-top: 4px; }
+  .nav-menu .nav-m-login a { color: var(--red) !important; font-weight: 700 !important; }
+  /* logged-in customer: avatar + Log Out only */
+  .site-nav #user-name { display: none !important; }
+  .site-nav #user-avatar { width: 32px !important; height: 32px !important; }
+  /* dropdown stays inside the screen */
+  .site-nav .nav-menu:not([hidden]) {
+    left: auto !important; right: 12px !important; max-width: calc(100vw - 24px) !important; box-sizing: border-box;
+  }
+
+  /* Pop-ups fit the screen */
+  .modal-overlay { padding: 10px !important; }
+  .modal { width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+  .modal-close { z-index: 2; }
+  .login-prompt-overlay { padding: 14px !important; box-sizing: border-box; }
+  .login-prompt-modal {
+    width: 100% !important; max-width: 400px !important; box-sizing: border-box;
+    padding: 26px 20px 22px !important;
+  }
+  .login-prompt-btns { display: grid !important; grid-template-columns: 1fr !important; gap: 10px !important; }
+  .login-prompt-btns > * {
+    width: 100% !important; box-sizing: border-box; text-align: center; justify-content: center;
+    white-space: normal !important; padding: 12px 16px !important; margin: 0 !important;
+  }
+
+  /* Big numbers in the red "By the numbers" band */
+  .proof-section .stat-card .stat-num,
+  .proof-section .stat-card h3,
+  .proof-section .stat-card strong { font-size: clamp(26px, 8vw, 36px) !important; white-space: nowrap; }
+
+  /* Settings */
+  .settings-fields { grid-template-columns: minmax(0, 1fr); }
+  .settings-actions .btn { width: 100%; justify-content: center; text-align: center; }
+  .settings-msg { width: 100%; margin: 0; }
+
+  /* Admin top bar */
+  .admin-topbar { gap: 8px; }
+  .admin-topbar .topbar-left { min-width: 0; }
+  .admin-topbar .topbar-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-topbar .topbar-right { flex-shrink: 0; gap: 6px !important; }
+
+  /* Admin tables become cards: every column visible, nothing cut off */
+  .admin-table-wrap { overflow: visible !important; background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .admin-table, .admin-table tbody { display: block; width: 100%; }
+  .admin-table thead { display: none; }
+  .admin-table tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 0;
+    background: #fff; border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 6px 14px; margin: 0 0 12px; box-shadow: var(--shadow-xs);
+  }
+  .admin-table td {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    padding: 9px 0 !important; border-bottom: 1px solid var(--hairline) !important;
+    overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; text-align: left !important;
+  }
+  .admin-table td:last-child { border-bottom: 0 !important; }
+  .admin-table td::before {
+    flex: 0 0 86px; content: attr(data-label); font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .admin-table td.cell-full, .admin-table td[colspan] { display: block; text-align: center !important; }
+  .admin-table td.cell-full::before, .admin-table td[colspan]::before { content: none; }
+  .admin-table td > div, .admin-table td select, .admin-table td button { max-width: 100%; }
+  .admin-table td select { flex: 1 1 160px; min-height: 40px; font-size: 14px; }
+  .admin-table td br { display: none; }
+  .admin-table td button, .admin-table td .btn, .admin-table td .btn-ghost { min-height: 36px; }
+}
+
+/* Small phones (360px and below) */
+@media (max-width: 380px) {
+  .site-nav .brand { font-size: 14.5px !important; }
+  .site-nav .nav-actions .btn,
+  .site-nav .nav-actions .btn-ghost { padding: 8px 11px !important; font-size: 12.5px !important; }
+  .admin-table td::before { flex-basis: 76px; }
+}
