@@ -1,8 +1,8 @@
 // POST /api/orders  GET /api/orders  GET /api/orders/admin/all (staff)
-// GET /api/orders/:id  PATCH /api/orders/:id/status (staff)
+// GET /api/orders/:id  PATCH /api/orders/:id/status (staff: admin, pharmacist, counter)
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
-import { requireAuth, requireStaff, STAFF_ROLES } from '../middleware/auth-middleware.js';
+import { requireAuth, requireStaff, ADMIN_ROLES, STAFF_ROLES } from '../middleware/auth-middleware.js';
 import { isUuid, sendRpcError } from '../lib/helpers.js';
 
 const router = Router();
@@ -19,7 +19,7 @@ const withImage = (order) => ({
 
 /* ── PLACE ORDER ─────────────────────────────────────────────────── */
 router.post('/', requireAuth, async (req, res) => {
-  const { items, prescription_id, notes, branch } = req.body ?? {};
+  const { items, prescription_id, notes } = req.body ?? {};
 
   if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
     return res.status(400).json({ error: 'items must contain between 1 and 50 entries.' });
@@ -37,14 +37,14 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid prescription id.' });
   }
 
-  // Prices always come from the database; staff ringing up a walk-in sale skip the Rx upload step.
+  // Prices always come from the database; an admin ringing up a POS walk-in sale skips the Rx upload step.
   const { data, error } = await supabaseAdmin.rpc('place_order', {
     p_customer_id: req.user.id,
     p_items: lines,
-    p_pickup_branch: typeof branch === 'string' ? branch : null,
+    p_pickup_branch: null,
     p_notes: typeof notes === 'string' ? notes : null,
     p_prescription_id: prescription_id || null,
-    p_skip_rx_check: STAFF_ROLES.includes(req.profile.role),
+    p_skip_rx_check: ADMIN_ROLES.includes(req.profile.role),
   });
   if (error) return sendRpcError(res, error);
 
@@ -58,7 +58,7 @@ router.get('/admin/all', requireStaff, async (req, res) => {
 
   let query = supabaseAdmin
     .from('Order')
-    .select(`order_id, status, total_amount, placed_at, pickup_branch, notes,
+    .select(`order_id, status, total_amount, placed_at, notes,
              profiles:Profiles(full_name, phone), OrderItem(quantity, Product(name))`)
     .order('placed_at', { ascending: false })
     .limit(300);
@@ -73,7 +73,7 @@ router.get('/admin/all', requireStaff, async (req, res) => {
 router.get('/', requireAuth, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('Order')
-    .select(`order_id, status, total_amount, placed_at, ready_at, completed_at, pickup_branch, notes, OrderItem(${ITEM_FIELDS})`)
+    .select(`order_id, status, total_amount, placed_at, ready_at, completed_at, notes, OrderItem(${ITEM_FIELDS})`)
     .eq('customer_id', req.user.id)
     .order('placed_at', { ascending: false });
   if (error) { console.error(error); return res.status(500).json({ error: 'Unable to load your orders.' }); }

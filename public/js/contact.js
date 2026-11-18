@@ -26,7 +26,6 @@ document.getElementById('send-message').addEventListener('click', async function
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const msg = document.getElementById('msg').value.trim();
-    const branch = document.getElementById('branch').value;
     const phone = document.getElementById('phone').value.trim();
     const fb = document.getElementById('form-feedback');
     const btn = this;
@@ -49,7 +48,7 @@ document.getElementById('send-message').addEventListener('click', async function
         const res = await fetch('/api/admin/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_name: name, email, phone, branch, message: msg }),
+            body: JSON.stringify({ full_name: name, email, phone, message: msg }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to send message.');
@@ -64,7 +63,6 @@ document.getElementById('send-message').addEventListener('click', async function
         document.getElementById('email').value = '';
         document.getElementById('phone').value = '';
         document.getElementById('msg').value = '';
-        document.getElementById('branch').value = '';
     } catch (err) {
         fb.style.display = 'block';
         fb.style.color = 'var(--red)';

@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { createAnonClient, supabaseAdmin } from '../config/supabase.js';
 import { requireAuth } from '../middleware/auth-middleware.js';
+import { normalizeRole } from '../lib/roles.js';
 
 const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,7 +57,7 @@ router.post('/login', async (req, res) => {
   return res.json({
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
-    user: { id: data.user.id, email: data.user.email, ...details },
+    user: { id: data.user.id, email: data.user.email, ...details, role: normalizeRole(details.role) },
   });
 });
 

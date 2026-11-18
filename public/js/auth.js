@@ -181,11 +181,29 @@ const Auth = (() => {
         }
     }
 
+    /* ── ROLES ─────────────────────────────────────────────────────── */
+    /* admin = everything · pharmacist = prescriptions + view products + orders
+       counter = order status only · customer = shopper.
+       Old 'owner' / 'administrator' values are treated as admin.        */
+
+    const ROLE_LABELS = { admin: 'Admin', pharmacist: 'Pharmacist', counter: 'Counter', customer: 'Customer' };
+
+    function normalizeRole(role) {
+        const r = String(role || 'customer').toLowerCase();
+        if (r === 'owner' || r === 'administrator') return 'admin';
+        return ROLE_LABELS[r] ? r : 'customer';
+    }
+    function isAdmin(role) { return normalizeRole(role) === 'admin'; }
+    function isPharmacy(role) { return ['admin', 'pharmacist'].includes(normalizeRole(role)); }
+    function isStaff(role) { return ['admin', 'pharmacist', 'counter'].includes(normalizeRole(role)); }
+    function roleLabel(role) { return ROLE_LABELS[normalizeRole(role)]; }
+    function homeFor(user) { return user && isStaff(user.role) ? 'admin.html' : 'homepage.html'; }
+
     /* ── REQUIRE ADMIN ─────────────────────────────────────────────── */
 
     async function requireAdmin() {
         const user = await requireAuth();
-        if (user && !['owner', 'administrator'].includes(user.role)) {
+        if (user && !isAdmin(user.role)) {
             window.location.replace('homepage.html');
             return null;
         }
@@ -205,6 +223,12 @@ const Auth = (() => {
         getSession,
         requireAuth,
         requireAdmin,
+        normalizeRole,
+        isAdmin,
+        isPharmacy,
+        isStaff,
+        roleLabel,
+        homeFor,
         fetch: apiFetch,   // authenticated fetch for use in other scripts
     };
 

@@ -11,7 +11,7 @@ async function handleLogin() {
         const redirect = params.get('redirect') || sessionStorage.getItem('ap_redirect_after_login');
         sessionStorage.removeItem('ap_redirect_after_login');
         if (redirect) window.location.replace(redirect);
-        else window.location.replace(['owner', 'administrator', 'pharmacist'].includes(user.role) ? 'admin.html' : 'homepage.html');
+        else window.location.replace(Auth.homeFor(user));
     } catch (err) {
         showError('login', err.message);
         setLoading('login-btn', false);

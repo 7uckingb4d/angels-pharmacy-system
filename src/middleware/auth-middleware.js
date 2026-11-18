@@ -1,8 +1,8 @@
 // Verifies the Supabase JWT from the Authorization header and loads the user's profile.
 import { supabaseAdmin } from '../config/supabase.js';
+import { ADMIN_ROLES, PHARMACY_ROLES, STAFF_ROLES, normalizeRole } from '../lib/roles.js';
 
-export const ADMIN_ROLES = ['owner', 'administrator'];
-export const STAFF_ROLES = ['owner', 'administrator', 'pharmacist'];
+export { ADMIN_ROLES, PHARMACY_ROLES, STAFF_ROLES };
 
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -27,7 +27,7 @@ export async function requireAuth(req, res, next) {
   }
 
   req.user = user;
-  req.profile = { ...profile, role: profile.role || 'customer' };
+  req.profile = { ...profile, role: normalizeRole(profile.role) };
   req.accessToken = token;
   next();
 }
@@ -39,5 +39,9 @@ const requireRole = (roles, message) => [
     : res.status(403).json({ error: message }),
 ];
 
+// admin + pharmacist + counter
 export const requireStaff = requireRole(STAFF_ROLES, 'Staff access required.');
-export const requireAdmin = requireRole(ADMIN_ROLES, 'Admin access required.');
+// admin + pharmacist
+export const requirePharmacy = requireRole(PHARMACY_ROLES, 'Pharmacist or admin access required.');
+// admin only
+export const requireAdmin = requireRole(ADMIN_ROLES, 'Admin only. Ask an admin to do this.');

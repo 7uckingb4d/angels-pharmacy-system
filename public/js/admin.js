@@ -1,7 +1,7 @@
 const API = '';
 
 let _adminUser = null;
-let _branches = [];
+let _role = 'customer';
 let _medicines = [];
 let posCart = [];
 
@@ -41,37 +41,58 @@ function setupProductImagePreview() {
 setupProductImagePreview();
 
 /* ── Boot ── */
-async function start() {
-    // Allow both admin and pharmacist (staff) roles
+// admin      → everything
+// pharmacist → dashboard, products (view only), prescriptions, orders, settings
+// counter    → dashboard, orders (status updates only), settings
+const PANEL_ACCESS = {
+    dashboard: ['admin', 'pharmacist', 'counter'],
+    pos: ['admin'],
+    users: ['admin'],
+    products: ['admin', 'pharmacist'],
+    prescriptions: ['admin', 'pharmacist'],
+    orders: ['admin', 'pharmacist', 'counter'],
+    settings: ['admin', 'pharmacist', 'counter'],
+};
+const canSee = (panel) => (PANEL_ACCESS[panel] || []).includes(_role);
+const isAdminUser = () => _role === 'admin';
 
+async function start() {
     _adminUser = await Auth.requireAuth();
     if (!_adminUser) return;
 
-    if (!['owner', 'administrator', 'pharmacist'].includes(_adminUser.role)) {
+    _role = Auth.normalizeRole(_adminUser.role);
+    if (!Auth.isStaff(_role)) {
         window.location.replace('homepage.html');
         return;
     }
 
-    const isAdmin = ['owner', 'administrator'].includes(_adminUser.role);
+    const isAdmin = _role === 'admin';
+    const isPharmacy = Auth.isPharmacy(_role);
 
-    // Hide admin-only elements for staff
+    // Hide what this role cannot use
+    // 'important' is needed: the theme styles sidebar links with display:flex !important.
+    const hide = el => el.style.setProperty('display', 'none', 'important');
+    if (!isAdmin) document.querySelectorAll('.admin-only').forEach(hide);
+    if (!isPharmacy) document.querySelectorAll('.rx-only').forEach(hide);
+
+    const label = Auth.roleLabel(_role);
+    document.getElementById('topbar-pill').textContent = `${label} Access`;
+    document.getElementById('panel-role-label').textContent = isAdmin ? 'Admin Panel' : `${label} Panel`;
     if (!isAdmin) {
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
-        document.getElementById('topbar-pill').textContent = 'Staff Access';
-        document.getElementById('panel-role-label').textContent = 'Staff Panel';
+        const desc = document.getElementById('qa-products-desc');
+        if (desc) desc.textContent = 'View prices and stock (admin edits).';
     }
 
     const name = _adminUser.full_name || _adminUser.email;
     document.getElementById('admin-avatar').textContent = name.charAt(0).toUpperCase();
     document.getElementById('admin-name').textContent = name;
-    document.getElementById('admin-email').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
+    document.getElementById('admin-email').textContent = label;
     document.getElementById('settings-email').textContent = _adminUser.email;
-    document.getElementById('settings-role').textContent = isAdmin ? 'Administrator' : 'Staff / Pharmacist';
+    document.getElementById('settings-role').textContent = label;
 
-    await Promise.all([loadDashboard(), loadBranches(), loadCategories()]);
-    loadProducts();
+    await loadDashboard();
+    if (isPharmacy) { loadCategories(); loadProducts(); loadPrescriptions(); }
     if (isAdmin) loadUsers();
-    loadPrescriptions();
     loadOrders();
 }
 
@@ -101,24 +122,12 @@ async function loadDashboard() {
         document.getElementById('activity-feed').innerHTML = data.slice(0, 5).map(o => `
       <div class="activity-item">
         <div>
-          <div class="activity-text"><strong>Order ${o.order_id.slice(0, 8)}…</strong> — ${esc(o.profiles?.full_name || 'Customer')}${o.pickup_branch ? ' · ' + esc(o.pickup_branch) : ''}</div>
+          <div class="activity-text"><strong>Order ${o.order_id.slice(0, 8)}…</strong> — ${esc(o.profiles?.full_name || 'Customer')}</div>
           <div class="activity-time">${new Date(o.placed_at).toLocaleString('en-PH')} · ₱${parseFloat(o.total_amount).toFixed(2)} · <strong>${o.status}</strong></div>
         </div>
       </div>
     `).join('');
     } catch { }
-}
-
-/* ── BRANCHES ── */
-async function loadBranches() {
-    try {
-        const res = await Auth.fetch(`/admin/branches`);
-        const data = await res.json();
-        if (res.ok) _branches = data.map(b => ({ id: b.branch_id, name: b.name, address: b.address, city: b.city }));
-    } catch { }
-
-    renderBranchSelect();
-    renderBranchesPanel();
 }
 
 async function loadCategories() {
@@ -129,46 +138,6 @@ async function loadCategories() {
         document.getElementById('edit-category').innerHTML =
             data.map(c => `<option value="${c.category_id}">${esc(c.category_name)}</option>`).join('');
     } catch { }
-}
-
-function renderBranchSelect() {
-    const sel = document.getElementById('pos-branch');
-    sel.innerHTML = '<option value="">Branch (optional)…</option>' +
-        _branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
-}
-
-function renderBranchesPanel() {
-    const grid = document.getElementById('branches-grid');
-    if (!_branches.length) {
-        grid.innerHTML = '<div class="card"><p class="muted">No branch data available.</p></div>';
-        return;
-    }
-    const now = new Date();
-    const phHour = parseInt(new Intl.DateTimeFormat('en-PH', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(now));
-    const phDay = new Intl.DateTimeFormat('en-PH', { weekday: 'short', timeZone: 'Asia/Manila' }).format(now);
-    const isSat = phDay === 'Sat', isSun = phDay === 'Sun';
-    let isOpen, hoursLabel;
-    const satLabel = '8:00 AM – 12:00 PM', weekLabel = '8:00 AM – 6:00 PM';
-    if (isSun) { isOpen = false; hoursLabel = 'Closed today (Sunday)'; }
-    else if (isSat) { isOpen = phHour >= 8 && phHour < 12; hoursLabel = satLabel; }
-    else { isOpen = phHour >= 8 && phHour < 18; hoursLabel = weekLabel; }
-
-    grid.innerHTML = _branches.map(b => `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div>
-          <h3 style="margin:0 0 3px;font-size:16px;font-family:'Playfair Display',serif;color:var(--red);">${esc(b.name)}</h3>
-          <div class="muted" style="font-size:12px;">${esc(b.city || 'Valenzuela City')}</div>
-        </div>
-        <span class="status-pill ${isOpen ? 'verified' : 'inactive'}">${isOpen ? '● Open Now' : '○ Closed'}</span>
-      </div>
-      <div class="info-row"><div><div class="info-label">Address</div><div class="info-value">${esc(b.address || 'Valenzuela City')}</div></div></div>
-      <div class="info-row"><div><div class="info-label">Today's Hours</div><div class="info-value">${hoursLabel}</div></div></div>
-      <div class="info-row"><div><div class="info-label">Mon–Fri</div><div class="info-value">${weekLabel}</div></div></div>
-      <div class="info-row"><div><div class="info-label">Saturday</div><div class="info-value">${satLabel}</div></div></div>
-      <div class="info-row"><div><div class="info-label">Sunday</div><div class="info-value">Closed</div></div></div>
-    </div>
-  `).join('');
 }
 
 /* ── USERS ── */
@@ -197,9 +166,13 @@ async function loadUsers() {
         <td>${statusPill(u.role)}</td>
         <td class="muted">${new Date(u.created_at).toLocaleDateString('en-PH')}</td>
         <td>
-          ${u.role === 'customer' ? `<button class="row-action" onclick="changeUserRole('${u.id}', 'pharmacist')">Make Staff</button>` : ''}
-          ${u.role === 'pharmacist' ? `<button class="row-action" onclick="changeUserRole('${u.id}', 'administrator')">Make Admin</button><button class="row-action danger" onclick="changeUserRole('${u.id}', 'customer')">Revoke</button>` : ''}
-          ${u.role === 'administrator' && u.id !== _adminUser.id ? `<button class="row-action danger" onclick="changeUserRole('${u.id}', 'customer')">Revoke</button>` : ''}
+          ${u.id === _adminUser.id
+            ? '<span class="muted" style="font-size:12px;">You</span>'
+            : `<select class="role-select" aria-label="Role for ${esc(u.full_name || u.email)}"
+                 data-current="${esc(Auth.normalizeRole(u.role))}"
+                 onchange="changeUserRole('${u.id}', this.value, this)">
+                 ${ROLE_OPTIONS.map(r => `<option value="${r}" ${Auth.normalizeRole(u.role) === r ? 'selected' : ''}>${Auth.roleLabel(r)}</option>`).join('')}
+               </select>`}
         </td>
       </tr>
     `).join('');
@@ -208,15 +181,24 @@ async function loadUsers() {
     }
 }
 
-async function changeUserRole(userId, role) {
-    const labels = { pharmacist: 'Staff / Pharmacist', administrator: 'Administrator', customer: 'Customer' };
-    if (!confirm(`Change this user's role to "${labels[role] || role}"?`)) return;
+const ROLE_OPTIONS = ['customer', 'counter', 'pharmacist', 'admin'];
+
+async function changeUserRole(userId, role, selectEl) {
+    const label = Auth.roleLabel(role);
+    if (!confirm(`Change this user's role to "${label}"?`)) {
+        if (selectEl) selectEl.value = selectEl.dataset.current;
+        return;
+    }
     const res = await Auth.fetch(`/admin/users/${userId}/role`, {
         method: 'POST',
         body: JSON.stringify({ role }),
     });
-    if (res.ok) { showToast(`Role updated to ${labels[role] || role}.`); loadUsers(); }
-    else { const d = await res.json(); showToast('' + d.error); }
+    if (res.ok) { showToast(`Role updated to ${label}.`); loadUsers(); }
+    else {
+        const d = await res.json().catch(() => ({}));
+        showToast(d.error || 'Unable to change role.', 6000);
+        if (selectEl) selectEl.value = selectEl.dataset.current;
+    }
 }
 
 /* ── PRODUCTS ── */
@@ -253,6 +235,7 @@ async function loadProducts() {
 }
 
 async function deactivateProduct(id) {
+    if (!isAdminUser()) { showAdminOnly('Only an admin can remove medicines from the catalog.'); return; }
     const name = _medicines.find(m => m.medicine_id === id)?.name || 'this product';
     if (!confirm(`Deactivate "${name}"? It will no longer appear in the catalogue.`)) return;
     const res = await Auth.fetch(`/medicines/${id}`, { method: 'DELETE' });
@@ -272,14 +255,13 @@ async function loadPrescriptions() {
 
         const tbody = document.getElementById('rx-tbody');
         if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted);">No pending prescriptions.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--muted);">No pending prescriptions.</td></tr>';
             return;
         }
         tbody.innerHTML = data.map(r => `
       <tr>
         <td><strong>${esc(r.profiles?.full_name || '—')}</strong><br><span class="muted">${esc(r.profiles?.phone || '')}</span></td>
         <td class="muted">${esc(r.file_name || r.prescription_id.slice(0, 8) + '…')}</td>
-        <td>${esc(r.branches?.name || '—')}</td>
         <td class="muted">${new Date(r.uploaded_at).toLocaleString('en-PH')}</td>
         <td>${statusPill(r.status)}</td>
         <td>
@@ -291,7 +273,7 @@ async function loadPrescriptions() {
     `).join('');
     } catch (err) {
         document.getElementById('rx-tbody').innerHTML =
-            `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--red);">${err.message}</td></tr>`;
+            `<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--red);">${err.message}</td></tr>`;
     }
 }
 
@@ -335,14 +317,13 @@ async function loadOrders() {
 
         const tbody = document.getElementById('orders-tbody');
         if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">No orders found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted);">No orders found.</td></tr>';
             return;
         }
         tbody.innerHTML = data.map(o => `
       <tr>
         <td class="muted"><strong>${o.order_id.slice(0, 8)}…</strong></td>
         <td>${esc(o.profiles?.full_name || '—')}<br><span class="muted" style="font-size:11px;">${esc(o.profiles?.phone || '')}</span></td>
-        <td>${esc(o.pickup_branch || '—')}</td>
         <td>₱${parseFloat(o.total_amount).toFixed(2)}</td>
         <td class="muted">${new Date(o.placed_at).toLocaleString('en-PH')}</td>
         <td>${statusPill(o.status)}</td>
@@ -356,7 +337,7 @@ async function loadOrders() {
     `).join('');
     } catch (err) {
         document.getElementById('orders-tbody').innerHTML =
-            `<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--red);">${err.message}</td></tr>`;
+            `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--red);">${err.message}</td></tr>`;
     }
 }
 
@@ -445,8 +426,8 @@ function clearPosCart() {
 
 
 async function processSale() {
+    if (!isAdminUser()) { showAdminOnly('Only an admin can process POS sales.'); return; }
     if (!posCart.length) { showToast('Add items to the cart first.'); return; }
-    const branchId = document.getElementById('pos-branch').value;
 
     const btn = document.getElementById('pos-process-btn');
     btn.disabled = true; btn.textContent = 'Processing…';
@@ -455,7 +436,7 @@ async function processSale() {
         const items = posCart.map(i => ({ medicine_id: i.id, quantity: i.qty }));
         const res = await Auth.fetch(`/orders`, {
             method: 'POST',
-            body: JSON.stringify({ branch: _branches.find(b => b.id === branchId)?.name || '', items, notes: 'POS walk-in sale · Payment at pick-up' }),
+            body: JSON.stringify({ items, notes: 'POS walk-in sale · Payment at pick-up' }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -465,7 +446,7 @@ async function processSale() {
             body: JSON.stringify({ status: 'completed' }),
         });
 
-        showReceipt(data.order_id, branchId);
+        showReceipt(data.order_id);
         clearPosCart();
         loadDashboard();
     } catch (err) {
@@ -475,14 +456,12 @@ async function processSale() {
     }
 }
 
-function showReceipt(orderId, branchId) {
-    const branch = _branches.find(b => b.id === branchId);
+function showReceipt(orderId) {
     const total = posCart.reduce((s, i) => s + i.price * i.qty, 0);
     const now = new Date().toLocaleString('en-PH');
     const items = [...posCart];
 
     document.getElementById('receipt-body').innerHTML = `
-    <div class="receipt-row" style="border:none;padding-bottom:4px;"><span style="color:var(--muted);">Branch</span><span>${esc(branch?.name || 'Branch')}</span></div>
     <div class="receipt-row" style="border:none;padding-bottom:4px;"><span style="color:var(--muted);">Date &amp; Time</span><span>${now}</span></div>
     <div class="receipt-row" style="border:none;padding-bottom:4px;"><span style="color:var(--muted);">Payment</span><span>To be collected at pick-up</span></div>
     <div class="receipt-row" style="border:none;padding-bottom:4px;"><span style="color:var(--muted);">Order ID</span><span style="font-size:11px;">${orderId.slice(0, 8)}…</span></div>
@@ -499,7 +478,16 @@ function closeReceipt() { document.getElementById('receipt-overlay').classList.r
 function printReceipt() { window.print(); }
 
 /* ── EDIT PRODUCT MODAL ── */
+function showAdminOnly(message) {
+    document.getElementById('admin-only-msg').textContent = message || 'This action is for admins only.';
+    document.getElementById('admin-only-overlay').classList.add('open');
+    document.getElementById('admin-only-ok').focus();
+}
+function closeAdminOnly() { document.getElementById('admin-only-overlay').classList.remove('open'); }
+
 function openAddProductModal() {
+    // Block right away — the form never opens for pharmacists / counter.
+    if (!isAdminUser()) { showAdminOnly('Only an admin can add new medicines. Ask an admin to add it for you.'); return; }
     document.getElementById('edit-title').textContent = 'Add New Product';
     document.getElementById('edit-id').value = '';
     document.getElementById('edit-name').value = '';
@@ -517,6 +505,7 @@ function openAddProductModal() {
 }
 
 function openEditModal(id) {
+    if (!isAdminUser()) { showAdminOnly('Only an admin can edit medicines. You can view prices and stock here.'); return; }
     const p = _medicines.find(m => m.medicine_id === id);
     if (!p) return;
     document.getElementById('edit-id').value = id;
@@ -542,6 +531,7 @@ function handleEditOverlay(e) {
 }
 
 async function saveEdit() {
+    if (!isAdminUser()) { closeEditModal(); showAdminOnly('Only an admin can save medicine changes.'); return; }
     const id = document.getElementById('edit-id').value;
     const fileInput = document.getElementById('edit-image');
     const file = fileInput.files && fileInput.files[0];
@@ -587,10 +577,16 @@ const panelTitles = {
     dashboard: 'Dashboard', pos: 'Point of Sale',
     users: 'Users', products: 'Products',
     prescriptions: 'Prescriptions', orders: 'Orders',
-    branches: 'Branches', settings: 'Settings',
+    settings: 'Settings',
 };
 
 function switchPanel(name, btn) {
+    if (!canSee(name)) {
+        showAdminOnly(name === 'pos' || name === 'users'
+            ? 'This section is for admins only.'
+            : 'Your role cannot open this section.');
+        return;
+    }
     document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
     const panel = document.getElementById('panel-' + name);
@@ -617,10 +613,11 @@ function statusPill(s) {
         active: ['active', '● Active'],
         inactive: ['inactive', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Inactive'],
         declined: ['cancelled', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Declined'],
-        administrator: ['verified', 'Admin'],
-        owner: ['verified', 'Owner'],
         admin: ['verified', 'Admin'],
-        pharmacist: ['ready', 'Staff'],
+        administrator: ['verified', 'Admin'],
+        owner: ['verified', 'Admin'],
+        pharmacist: ['ready', 'Pharmacist'],
+        counter: ['pending', 'Counter'],
         customer: ['inactive', 'Customer'],
     };
     const [cls, label] = map[s] || ['inactive', s];
@@ -639,3 +636,4 @@ function showToast(msg, duration = 3500) {
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), duration);
 }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAdminOnly(); });

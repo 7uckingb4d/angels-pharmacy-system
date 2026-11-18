@@ -40,19 +40,16 @@
                 <button class="sidebar-link admin-only" data-panel="users" onclick="switchPanel('users',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users
                 </button>
-                <button class="sidebar-link admin-only" data-panel="products" onclick="switchPanel('products',this)">
+                <button class="sidebar-link rx-only" data-panel="products" onclick="switchPanel('products',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Products
                 </button>
-                <button class="sidebar-link" data-panel="prescriptions" onclick="switchPanel('prescriptions',this)">
+                <button class="sidebar-link rx-only" data-panel="prescriptions" onclick="switchPanel('prescriptions',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Prescriptions
                 </button>
                 <button class="sidebar-link" data-panel="orders" onclick="switchPanel('orders',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Orders
                 </button>
                 <div class="sidebar-section">System</div>
-                <button class="sidebar-link" data-panel="branches" onclick="switchPanel('branches',this)">
-                    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Branches
-                </button>
                 <button class="sidebar-link" data-panel="settings" onclick="switchPanel('settings',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Settings
                 </button>
@@ -94,13 +91,13 @@
                                 <div class="stat-label">Registered Users</div>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card rx-only">
                             <div>
                                 <div class="stat-num" id="stat-products">—</div>
                                 <div class="stat-label">Products in Catalog</div>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card rx-only">
                             <div>
                                 <div class="stat-num" id="stat-pending">—</div>
                                 <div class="stat-label">Pending Prescriptions</div>
@@ -118,7 +115,7 @@
                                 <div class="stat-label">Revenue (30 days)</div>
                             </div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card rx-only">
                             <div>
                                 <div class="stat-num" id="stat-lowstock">—</div>
                                 <div class="stat-label">Low Stock Items</div>
@@ -134,7 +131,7 @@
                             <div class="qa-label">Open POS</div>
                             <div class="qa-desc">Process walk-in sales at the counter.</div>
                         </div>
-                        <div class="qa-card"
+                        <div class="qa-card rx-only"
                             onclick="switchPanel('prescriptions', document.querySelector('[data-panel=prescriptions]'))">
                             <div class="qa-label">Review Prescriptions</div>
                             <div class="qa-desc">Approve or reject pending Rx submissions.</div>
@@ -144,10 +141,10 @@
                             <div class="qa-label">Orders Queue</div>
                             <div class="qa-desc">View and manage pick-up orders.</div>
                         </div>
-                        <div class="qa-card admin-only"
+                        <div class="qa-card rx-only"
                             onclick="switchPanel('products', document.querySelector('[data-panel=products]'))">
-                            <div class="qa-label">Manage Products</div>
-                            <div class="qa-desc">Edit prices and availability.</div>
+                            <div class="qa-label">Products</div>
+                            <div class="qa-desc" id="qa-products-desc">Edit prices and availability.</div>
                         </div>
                     </div>
                     <div class="section-header">
@@ -186,9 +183,6 @@
                                 <div class="pos-empty">No items added yet.<br>Click a product to add it.</div>
                             </div>
                             <div class="pos-cart-footer">
-                                <select class="pos-branch-select" id="pos-branch">
-                                    <option value="">Select branch…</option>
-                                </select>
                                 <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Payment will be
                                     collected at
                                     pick-up.</div>
@@ -238,7 +232,7 @@
                 <div class="admin-panel" id="panel-products">
                     <div class="section-header">
                         <h2>Product Catalog</h2>
-                        <button class="btn" style="font-size:12px;" onclick="openAddProductModal()">+ Add
+                        <button class="btn" id="add-product-btn" style="font-size:12px;" onclick="openAddProductModal()">+ Add
                             Product</button>
                     </div>
                     <div class="admin-table-wrap">
@@ -276,7 +270,6 @@
                                 <tr>
                                     <th>Patient</th>
                                     <th>File</th>
-                                    <th>Branch</th>
                                     <th>Submitted</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -284,7 +277,7 @@
                             </thead>
                             <tbody id="rx-tbody">
                                 <tr>
-                                    <td colspan="6" style="padding:24px;text-align:center;color:var(--muted);">Loading
+                                    <td colspan="5" style="padding:24px;text-align:center;color:var(--muted);">Loading
                                         prescriptions…</td>
                                 </tr>
                             </tbody>
@@ -314,7 +307,6 @@
                                 <tr>
                                     <th>Order ID</th>
                                     <th>Customer</th>
-                                    <th>Branch</th>
                                     <th>Total</th>
                                     <th>Placed</th>
                                     <th>Status</th>
@@ -323,21 +315,12 @@
                             </thead>
                             <tbody id="orders-tbody">
                                 <tr>
-                                    <td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">Loading
+                                    <td colspan="6" style="padding:24px;text-align:center;color:var(--muted);">Loading
                                         orders…</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                <!-- BRANCHES -->
-                <div class="admin-panel" id="panel-branches">
-                    <div class="section-header">
-                        <h2>Branch Overview</h2>
-                    </div>
-                    <div id="branches-grid"
-                        style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;"></div>
                 </div>
 
                 <!-- SETTINGS -->
@@ -355,8 +338,8 @@
                         </div>
                         <div class="info-row">
                             <div>
-                                <div class="info-label">Branches</div>
-                                <div class="info-value">Punturin &amp; Malinta, Valenzuela City</div>
+                                <div class="info-label">Location</div>
+                                <div class="info-value">Valenzuela City</div>
                             </div>
                         </div>
                         <div class="info-row">
@@ -490,6 +473,20 @@
                 <button class="btn-ghost" style="flex:1;" onclick="closeReceipt()">Close</button>
                 <button class="btn" style="flex:1;" onclick="printReceipt()">Print</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Admin-only notice (shown when a pharmacist/counter tries an admin action) -->
+    <div class="ap-dialog-overlay" id="admin-only-overlay" onclick="if (event.target === this) closeAdminOnly()">
+        <div class="ap-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-only-title"
+            aria-describedby="admin-only-msg">
+            <div class="ap-dialog-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 id="admin-only-title">Admin only</h3>
+            <p id="admin-only-msg">Only an admin can add new medicines.</p>
+            <button class="btn" id="admin-only-ok" type="button" onclick="closeAdminOnly()">OK, got it</button>
         </div>
     </div>
 

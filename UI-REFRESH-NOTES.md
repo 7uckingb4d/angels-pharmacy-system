@@ -43,3 +43,20 @@ Backend, API routes, database, auth flow, form fields and IDs: untouched.
   are cleaned of stray quotes/spaces/`/rest/v1`; the catalog falls back to a manual
   category join; new repair migration grants permissions and adds starter
   medicines when the catalog is empty.
+
+## v4 — tester fixes
+
+- **Branches removed everywhere** — no more "Punturin / Malinta" on public pages, cart, POS, contact form, or the admin panel (Branches tab deleted). The site now says "Valenzuela City".
+- **Pharmacist Chat removed** (homepage card + landing feature). Replaced on the landing page by "Live Order Tracking".
+- **Sign-up pop-up fits phones** — scrolls inside the screen, smaller spacing, 16px inputs (no iPhone zoom).
+- **Roles renamed: admin, pharmacist, counter** (+ customer).
+  - admin — everything.
+  - pharmacist — prescriptions, view products, orders. Clicking *+ Add Product*, *Edit* or *Remove* shows an "Admin only" pop-up right away (the form never opens). The server also refuses.
+  - counter — Dashboard + Orders only; can only update order status.
+  - Old `owner` / `administrator` accounts are treated as admin automatically.
+  - **Run `supabase/migrations/20261118000000_roles_counter_pharmacist_admin.sql` in the Supabase SQL Editor** so the database accepts the new names (needed before you can assign "Counter").
+  - Users tab now has a role picker (Customer / Counter / Pharmacist / Admin).
+- **Prescription upload can't be repeated** — one click = one upload; picking the same file again shows "Already submitted". (Before, two scripts both uploaded on every click.)
+- **OCR works** — "View OCR" reads text from a prescription photo (Tesseract.js, loaded on demand) and highlights matching catalog medicines. PDFs are read by the pharmacist.
+- Fixed: hidden admin menu items still showed for staff (theme `!important` beat the hide).
+- Tests: `npm test` checks who can do what per role.

@@ -17,7 +17,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --env-file-if-exists=.env server.js",
-    "debug": "node --env-file-if-exists=.env --inspect server.js"
+    "debug": "node --env-file-if-exists=.env --inspect server.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

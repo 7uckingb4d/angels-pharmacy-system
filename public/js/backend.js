@@ -19,8 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const yearEl = document.getElementById("year");
     if (yearEl) yearEl.textContent = "\u00A9 " + new Date().getFullYear();
 
-    if (document.getElementById("rx-file")) setupUpload();
-    if (document.getElementById("chat-send")) setupChat();
     if (document.getElementById("refills")) renderRefills();
 
     if (document.getElementById("cart-count")) {
@@ -53,131 +51,6 @@ function showToast(msg, duration = 3000) {
     t.textContent = msg;
     t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), duration);
-}
-
-/* ── PRESCRIPTION UPLOAD ──────────────────────────────────── */
-
-function setupUpload() {
-    const rxFile = document.getElementById("rx-file");
-    const uploadPrompt = document.getElementById("upload-prompt");
-    const preview = document.getElementById("upload-preview");
-    const previewImg = document.getElementById("preview-img");
-    const previewName = document.getElementById("preview-name");
-    const previewTime = document.getElementById("preview-time");
-    const requestBtn = document.getElementById("request-verification");
-    const viewOcrBtn = document.getElementById("view-ocr-btn");
-
-    rxFile.addEventListener("change", (ev) => {
-        const f = ev.target.files && ev.target.files[0];
-        if (!f) return;
-        if (f.type.startsWith("image/")) {
-            const reader = new FileReader();
-            reader.onload = (e) => { previewImg.src = e.target.result; };
-            reader.readAsDataURL(f);
-        } else {
-            previewImg.src = "https://placehold.co/80x64/fde8eb/c0152a?text=PDF";
-        }
-        previewImg.alt = f.name;
-        previewName.textContent = f.name;
-        previewTime.textContent = "Uploaded " + new Date().toLocaleString("en-PH");
-        uploadPrompt.style.display = "none";
-        preview.style.display = "flex";
-        const parsed = simulateOCR(f.name);
-        state.prescription = { filename: f.name, parsed, uploadedAt: new Date().toISOString() };
-        setVerificationState("uploaded");
-    });
-
-    requestBtn.addEventListener("click", async () => {
-        if (!state.prescription) { showToast("Please upload a prescription first."); return; }
-
-        const rxFile = document.getElementById("rx-file");
-        const file = rxFile.files && rxFile.files[0];
-        if (!file) { showToast("Please upload a prescription file."); return; }
-
-        requestBtn.disabled = true;
-        requestBtn.textContent = "Requesting…";
-
-        try {
-            const formData = new FormData();
-            formData.append("prescription", file);
-            /*formData.append("branch_id", branchMap[state.selectedBranch || "punturin"]);*/
-
-            const token = sessionStorage.getItem("ap_access_token");
-            const headers = {};
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-
-            const res = await fetch("/api/prescriptions", {
-                method: "POST",
-                headers,
-                body: formData,
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Upload failed.");
-
-            state.prescription.id = data.prescription_id;
-
-            setVerificationState("uploaded");
-            showToast("Prescription submitted! Awaiting pharmacist verification.");
-
-            const prescriptionId = data.prescription_id;
-            const pollInterval = setInterval(async () => {
-                try {
-                    const statusRes = await Auth.fetch('/prescriptions');
-                    const prescriptions = await statusRes.json();
-                    const current = prescriptions.find(p => p.prescription_id === prescriptionId);
-                    if (current) {
-                        if (current.status === 'verified') {
-                            state.prescription.status = 'verified';
-                            setVerificationState("verified");
-                            showToast("Prescription verified by pharmacist!");
-                            clearInterval(pollInterval);
-                        } else if (current.status === 'declined') {
-                            showToast("Prescription rejected: " + (current.rejection_reason || "No reason given."));
-                            clearInterval(pollInterval);
-                        }
-                    }
-                } catch { }
-            }, 5000);
-        } catch (err) {
-            showToast("" + err.message);
-        } finally {
-            requestBtn.textContent = "Request Verification";
-            requestBtn.disabled = false;
-        }
-    });
-
-    viewOcrBtn.addEventListener("click", () => {
-        if (!state.prescription) { showToast("No OCR result available."); return; }
-        const p = state.prescription.parsed;
-        alert(
-            "OCR Result (simulated):\n\nMedicine: " + p.medicine +
-            "\nNote: " + p.note +
-            "\n\nIn production, replace with Tesseract.js or a server-side OCR service."
-        );
-    });
-}
-
-function simulateOCR(filename) {
-    const name = filename.toLowerCase();
-    for (const p of productsData) {
-        if (name.includes(p.name.split(" ")[0].toLowerCase()))
-            return { medicine: p.name, note: "Matched by filename heuristic" };
-    }
-    const pick = productsData[Math.floor(Math.random() * productsData.length)];
-    return { medicine: pick.name, note: "Fallback simulated match" };
-}
-
-function setVerificationState(s) {
-    state.verificationState = s;
-    const order = ["uploaded", "verified", "dispensed"];
-    const idx = order.indexOf(s);
-    order.forEach((st, i) => {
-        const li = document.getElementById("st-" + st);
-        const dot = document.getElementById("dot-" + st);
-        if (!li) return;
-        if (i <= idx) { li.style.opacity = "1"; if (dot) dot.classList.add("lit"); }
-        else { li.style.opacity = "0.4"; if (dot) dot.classList.remove("lit"); }
-    });
 }
 
 /* ── PRODUCTS ─────────────────────────────────────────────── */
@@ -364,16 +237,7 @@ function createCartDrawer() {
         "<span style=\"font-size:13px;color:var(--muted);\">Subtotal</span>" +
         "<span id=\"cart-subtotal\" style=\"font-weight:700;color:var(--red);font-size:16px;\"></span>" +
         "</div>" +
-        "<div style=\"margin-bottom:12px;\">" +
-        /*"<label style=\"font-size:12px;font-weight:600;color:var(--text-sub);display:block;margin-bottom:6px;\">Pick-up Branch</label>" +
-        "<select id=\"cart-branch\" " +
-        "style=\"width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);" +
-        "font-family:inherit;font-size:13px;background:#fff;color:var(--text);\">" +
-            "<option value=\"\">Select a branch\u2026</option>" +
-        "<option value=\"punturin\">Punturin Branch</option>" +
-        "<option value=\"malinta\">Malinta Branch</option>" +
-        "</select>" +*/
-        "</div>" +
+        "<div style=\"margin-bottom:12px;\"></div>" +
         "<button id=\"place-order-btn\" " +
         "style=\"width:100%;padding:12px;border-radius:10px;" +
         "background:linear-gradient(135deg,var(--red),var(--red-dark));" +
@@ -524,14 +388,6 @@ function renderCartDrawer() {
 }
 
 async function placeOrder() {
-    const branchMap = {
-        punturin: "12a814e2-f9b9-42a7-87a1-f5a66bfc5904",
-        malinta: "850afc97-c7d3-4cc9-b119-deedb07fd1ac"
-    };
-
-    const branchEl = document.getElementById("cart-branch");
-    const branch = branchEl ? branchEl.value : "";
-
     if (!state.cart.length) { showToast("Your cart is empty."); return; }
 
     // Check if cart has Rx items
@@ -557,7 +413,6 @@ async function placeOrder() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                /*branch_id: branchMap[branch] || branch,*/
                 prescription_id,
                 items: state.cart.map(i => ({
                     medicine_id: i.id,
@@ -638,61 +493,6 @@ function renderRefills() {
     el.querySelectorAll("[data-sched]").forEach((btn) => {
         btn.addEventListener("click", () => showToast("Refill scheduling coming soon."));
     });
-}
-
-/* ── PHARMACIST CHAT ──────────────────────────────────────── */
-
-function setupChat() {
-    const send = document.getElementById("chat-send");
-    const input = document.getElementById("chat-input");
-    if (!send || !input) return;
-
-    send.addEventListener("click", () => {
-        const text = input.value && input.value.trim();
-        if (!text) return;
-        appendChat("You", text, true);
-        input.value = "";
-        send.disabled = true;
-        setTimeout(() => {
-            appendChat("Pharmacist", generatePharmacistReply(text), false);
-            send.disabled = false;
-        }, 900);
-    });
-
-    input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") { send.click(); e.preventDefault(); }
-    });
-}
-
-function appendChat(who, text, isUser) {
-    const box = document.getElementById("chat-box");
-    if (!box) return;
-    const m = document.createElement("div");
-    m.className = "chat-msg";
-    m.innerHTML =
-        "<div class=\"who " + (isUser ? "" : "them") + "\">" + escapeHtml(who) + "</div>" +
-        "<div class=\"body\">" + escapeHtml(text) + "</div>";
-    box.appendChild(m);
-    box.scrollTop = box.scrollHeight;
-}
-
-function generatePharmacistReply(text) {
-    const t = text.toLowerCase();
-    if (t.includes("interaction") || t.includes("safe with") || t.includes("combine"))
-        return "Please list all the medicines you're currently taking and I'll check for interactions. This is informational \u2014 always confirm with your doctor.";
-    if (t.includes("metformin"))
-        return "Metformin is generally well-tolerated. Avoid combining with certain antivirals. Share your full medication list and I can check for you.";
-    if (t.includes("paracetamol") || t.includes("biogesic"))
-        return "Paracetamol is safe for most people at recommended doses (500mg every 4\u20136 hours). Do not exceed 4g per day. Avoid alcohol.";
-    if (t.includes("refill") || t.includes("repeat"))
-        return "You can set up a refill reminder through your account, or just click \u2018Refill Now\u2019 on your last order. Want me to help?";
-    if (t.includes("delivery") || t.includes("pick") || t.includes("collect"))
-        return "We currently offer Click & Collect at our Punturin and Malinta branches. Select your branch when checking out.";
-    if (t.includes("prescription") || t.includes("rx") || t.includes("upload"))
-        return "Upload a photo or PDF of your prescription using the upload box. I'll review it personally before your order is prepared.";
-    if (t.includes("gcash") || t.includes("maya") || t.includes("payment"))
-        return "We accept GCash, Maya, debit/credit cards, and cash payment in-store. Choose your payment method at checkout.";
-    return "Thank you for your question! I can help with dosage, interactions, or prescription queries. For urgent concerns, please visit our branch directly.";
 }
 
 /* ── NAV ──────────────────────────────────────────────────── */

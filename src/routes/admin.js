@@ -1,9 +1,9 @@
-// Staff: dashboard, products, inventory, sales, branches.  Admin: users, roles, contact inbox.
+// Staff: dashboard.  Pharmacist + admin: products, inventory, sales.  Admin: users, roles, contact inbox.
 // Public: POST /api/admin/contacts (contact form)
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
-import { requireStaff, requireAdmin } from '../middleware/auth-middleware.js';
-import { BRANCHES } from '../config/branches.js';
+import { requireStaff, requirePharmacy, requireAdmin } from '../middleware/auth-middleware.js';
+import { ROLE_LIST, normalizeRole } from '../lib/roles.js';
 import { isUuid, serializeProduct, sendRpcError } from '../lib/helpers.js';
 
 const router = Router();
@@ -34,18 +34,15 @@ router.get('/dashboard', requireStaff, async (_req, res) => {
   });
 });
 
-/* ── BRANCHES (static) ───────────────────────────────────────────── */
-router.get('/branches', requireStaff, (_req, res) => res.json(BRANCHES));
-
 /* ── PRODUCTS incl. inactive (staff) ─────────────────────────────── */
-router.get('/products', requireStaff, async (_req, res) => {
+router.get('/products', requirePharmacy, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from('Product').select('*, Category(category_name)').order('name');
   if (error) { console.error(error); return res.status(500).json({ error: 'Unable to load products.' }); }
   return res.json(data.map(serializeProduct));
 });
 
 /* ── INVENTORY ───────────────────────────────────────────────────── */
-router.get('/inventory', requireStaff, async (_req, res) => {
+router.get('/inventory', requirePharmacy, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from('Product')
     .select('product_id, name, stock_quantity, price, is_active, Category(category_name)')
     .order('stock_quantity', { ascending: true });
@@ -65,10 +62,10 @@ router.post('/inventory', requireAdmin, async (req, res) => {
 });
 
 /* ── SALES (completed orders) ────────────────────────────────────── */
-router.get('/sales', requireStaff, async (req, res) => {
+router.get('/sales', requirePharmacy, async (req, res) => {
   const { from, to } = req.query;
   let query = supabaseAdmin.from('Order')
-    .select('order_id, total_amount, completed_at, pickup_branch, OrderItem(quantity, unit_price, Product(name))')
+    .select('order_id, total_amount, completed_at, OrderItem(quantity, unit_price, Product(name))')
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(500);
@@ -126,22 +123,26 @@ router.get('/users', requireAdmin, async (_req, res) => {
     data.users.forEach(u => { emails[u.id] = u.email; });
     if (data.users.length < 1000) break;
   }
-  return res.json(profiles.map(p => ({ ...p, email: emails[p.id] || '—' })));
+  return res.json(profiles.map(p => ({ ...p, role: normalizeRole(p.role), email: emails[p.id] || '—' })));
 });
 
 router.post('/users/:id/role', requireAdmin, async (req, res) => {
   const { role } = req.body ?? {};
-  const assignable = ['customer', 'pharmacist', 'administrator'];
-  if (!assignable.includes(role)) return res.status(400).json({ error: `Role must be one of: ${assignable.join(', ')}` });
+  if (!ROLE_LIST.includes(role)) return res.status(400).json({ error: `Role must be one of: ${ROLE_LIST.join(', ')}` });
   if (!isUuid(req.params.id)) return res.status(404).json({ error: 'User not found.' });
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'You cannot change your own role.' });
 
   const { data: target } = await supabaseAdmin.from('Profiles').select('role').eq('id', req.params.id).maybeSingle();
   if (!target) return res.status(404).json({ error: 'User not found.' });
-  if (target.role === 'owner') return res.status(403).json({ error: 'The owner role cannot be changed.' });
 
   const { error } = await supabaseAdmin.from('Profiles').update({ role }).eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error(error);
+    if (error.code === '22P02') {
+      return res.status(500).json({ error: 'The database still uses the old role names. Run supabase/migrations/20261118000000_roles_counter_pharmacist_admin.sql in the Supabase SQL Editor first.' });
+    }
+    return res.status(400).json({ error: error.message });
+  }
   return res.json({ message: `User role updated to "${role}".` });
 });
 

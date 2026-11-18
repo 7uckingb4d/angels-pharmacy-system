@@ -1,9 +1,9 @@
 // POST /api/prescriptions  GET /api/prescriptions  GET /pending (staff)
-// GET /:id/file (staff)  PATCH /:id (staff — verify or decline)
+// GET /:id/file (pharmacist/admin)  PATCH /:id (pharmacist/admin — verify or decline)
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { supabaseAdmin } from '../config/supabase.js';
-import { requireAuth, requireStaff } from '../middleware/auth-middleware.js';
+import { requireAuth, requirePharmacy } from '../middleware/auth-middleware.js';
 import { prescriptionUpload, RX_TYPES } from '../middleware/upload.js';
 import { isUuid } from '../lib/helpers.js';
 
@@ -46,7 +46,7 @@ router.get('/', requireAuth, async (req, res) => {
   return res.json(data);
 });
 
-router.get('/pending', requireStaff, async (_req, res) => {
+router.get('/pending', requirePharmacy, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from('Prescription')
     .select('prescription_id, status, file_name, uploaded_at, profiles:Profiles!Prescription_customer_id_fkey(full_name, phone)')
     .eq('status', 'pending')
@@ -55,7 +55,7 @@ router.get('/pending', requireStaff, async (_req, res) => {
   return res.json(data);
 });
 
-router.get('/:id/file', requireStaff, async (req, res) => {
+router.get('/:id/file', requirePharmacy, async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(404).json({ error: 'Prescription not found.' });
   const { data: rx } = await supabaseAdmin.from('Prescription')
     .select('prescription_file').eq('prescription_id', req.params.id).maybeSingle();
@@ -66,7 +66,7 @@ router.get('/:id/file', requireStaff, async (req, res) => {
   return res.json({ url: data.signedUrl });
 });
 
-router.patch('/:id', requireStaff, async (req, res) => {
+router.patch('/:id', requirePharmacy, async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(404).json({ error: 'Prescription not found.' });
   let { status, rejection_reason } = req.body ?? {};
   if (status === 'rejected') status = 'declined';
