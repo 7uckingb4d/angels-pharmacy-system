@@ -5,6 +5,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Admin Panel — Angel's Pharmacy</title>
+    <!-- Staff-only page: hidden until the login is checked, so customers never see it (not even for a split second). -->
+    <style id="ap-guard">html { visibility: hidden !important; }</style>
+    <script>
+        (function () {
+            try {
+                var hasToken = sessionStorage.getItem('ap_access_token') || localStorage.getItem('ap_refresh_token');
+                var user = JSON.parse(localStorage.getItem('ap_user') || 'null');
+                var role = String((user && user.role) || '').toLowerCase();
+                var staff = ['admin', 'owner', 'administrator', 'pharmacist', 'counter'];
+                if (!hasToken || !user) { location.replace('index.html'); return; }
+                if (staff.indexOf(role) === -1) { location.replace('homepage.html'); }
+            } catch (e) { location.replace('index.html'); }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/admin.css" />
     <script src="js/auth.js"></script>
@@ -36,7 +50,7 @@
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard
                 </button>
                 <div class="sidebar-section">Management</div>
-                <button class="sidebar-link admin-only" data-panel="pos" onclick="switchPanel('pos',this)">
+                <button class="sidebar-link pos-only" data-panel="pos" onclick="switchPanel('pos',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>POS
                 </button>
                 <button class="sidebar-link admin-only" data-panel="users" onclick="switchPanel('users',this)">
@@ -44,6 +58,10 @@
                 </button>
                 <button class="sidebar-link rx-only" data-panel="products" onclick="switchPanel('products',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Products
+                </button>
+                <button class="sidebar-link rx-only sidebar-sublink" data-panel="inventory" onclick="openInventory(this)">
+                    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Inventory
+                    <span class="sidebar-count" id="inv-alert-count" hidden></span>
                 </button>
                 <button class="sidebar-link rx-only" data-panel="prescriptions" onclick="switchPanel('prescriptions',this)">
                     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Prescriptions
@@ -86,6 +104,13 @@
 
                 <!-- DASHBOARD -->
                 <div class="admin-panel active" id="panel-dashboard">
+                    <div class="stock-alert-banner rx-only" id="stock-alert-banner" hidden>
+                        <div>
+                            <strong id="stock-alert-title">Stock alert</strong>
+                            <div class="small" id="stock-alert-text"></div>
+                        </div>
+                        <button class="btn" type="button" onclick="openInventory()">View Inventory</button>
+                    </div>
                     <div class="stat-grid">
                         <div class="stat-card admin-only">
                             <div>
@@ -128,10 +153,10 @@
                         <h2>Quick Actions</h2>
                     </div>
                     <div class="qa-grid">
-                        <div class="qa-card admin-only"
+                        <div class="qa-card pos-only"
                             onclick="switchPanel('pos', document.querySelector('[data-panel=pos]'))">
                             <div class="qa-label">Open POS</div>
-                            <div class="qa-desc">Process walk-in sales at the counter.</div>
+                            <div class="qa-desc">Place pick-up orders and take payments at the counter.</div>
                         </div>
                         <div class="qa-card rx-only"
                             onclick="switchPanel('prescriptions', document.querySelector('[data-panel=prescriptions]'))">
@@ -163,9 +188,29 @@
                 <div class="admin-panel" id="panel-pos">
                     <div class="section-header">
                         <h2>Point of Sale</h2>
-                        <span class="muted" style="font-size:13px;">Walk-in counter sales</span>
+                        <span class="muted" style="font-size:13px;">Click-and-collect at the counter · in-store pick-up only</span>
+                    </div>
+                    <div class="pos-setup card">
+                        <label class="settings-field pos-customer-field">
+                            <span>1. Customer</span>
+                            <div class="pos-customer-row">
+                                <input id="pos-customer-search" type="search" placeholder="Search registered customer by name or phone…" oninput="searchPosCustomers(this.value)" autocomplete="off" />
+                                <select id="pos-customer" aria-label="Customer" onchange="onPosCustomerChange()">
+                                    <option value="">Walk-in (no account)</option>
+                                </select>
+                            </div>
+                            <small class="muted" id="pos-customer-note">Pick a registered customer, or leave as walk-in.</small>
+                        </label>
+                        <div class="settings-field">
+                            <span>3. Fulfillment</span>
+                            <div class="pos-fulfillment">
+                                <label class="pos-radio"><input type="radio" name="pos-fulfillment" value="pickup" checked /> Pick up</label>
+                                <label class="pos-radio is-disabled" title="Delivery is not offered"><input type="radio" name="pos-fulfillment" value="delivery" disabled /> Delivery <em>(not available)</em></label>
+                            </div>
+                        </div>
                     </div>
                     <div style="margin-bottom:16px;">
+                        <div class="small" style="font-weight:700;margin-bottom:6px;color:var(--text-sub);">2. Add products</div>
                         <input id="pos-search" type="search" placeholder="Search medicines…"
                             style="width:100%;max-width:400px;" oninput="filterPosProducts(this.value)" />
                     </div>
@@ -185,15 +230,12 @@
                                 <div class="pos-empty">No items added yet.<br>Click a product to add it.</div>
                             </div>
                             <div class="pos-cart-footer">
-                                <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Payment will be
-                                    collected at
-                                    pick-up.</div>
+                                <div class="pickup-note" style="margin-bottom:12px;">In-store pick-up only — no delivery. Payment is taken at the counter.</div>
                                 <div class="pos-total">
                                     <span class="pos-total-label">TOTAL</span>
                                     <span class="pos-total-amount" id="pos-total">₱0.00</span>
                                 </div>
-                                <button class="pos-process-btn" id="pos-process-btn" onclick="processSale()">Process
-                                    Sale </button>
+                                <button class="pos-process-btn" id="pos-process-btn" onclick="processSale()">Confirm Order</button>
                                 <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:12px;"
                                     onclick="clearPosCart()">Clear Cart</button>
                             </div>
@@ -205,7 +247,10 @@
                 <div class="admin-panel" id="panel-users">
                     <div class="section-header">
                         <h2>Registered Users</h2>
-                        <span id="user-count-label" class="muted"></span>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <span id="user-count-label" class="muted"></span>
+                            <button class="btn" type="button" style="font-size:12px;" onclick="openAddUserModal()">+ Add User</button>
+                        </div>
                     </div>
                     <div class="admin-table-wrap">
                         <table class="admin-table">
@@ -216,13 +261,14 @@
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Role</th>
+                                    <th>Status</th>
                                     <th>Registered</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="users-tbody">
                                 <tr>
-                                    <td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">Loading
+                                    <td colspan="8" style="padding:24px;text-align:center;color:var(--muted);">Loading
                                         users…</td>
                                 </tr>
                             </tbody>
@@ -232,6 +278,12 @@
 
                 <!-- PRODUCTS -->
                 <div class="admin-panel" id="panel-products">
+                    <div class="product-tabs" role="tablist" aria-label="Products">
+                        <button class="product-tab active" type="button" role="tab" id="tab-catalog" aria-selected="true" onclick="showProductTab('catalog')">Catalog</button>
+                        <button class="product-tab" type="button" role="tab" id="tab-inventory" aria-selected="false" onclick="showProductTab('inventory')">Inventory &amp; Alerts <span class="sidebar-count" id="inv-tab-count" hidden></span></button>
+                    </div>
+
+                    <div id="products-catalog-view">
                     <div class="section-header">
                         <h2>Product Catalog</h2>
                         <button class="btn" id="add-product-btn" style="font-size:12px;" onclick="openAddProductModal()">+ Add
@@ -246,17 +298,90 @@
                                     <th>OTC / RX</th>
                                     <th>Same-day</th>
                                     <th>Category</th>
+                                    <th>Stock</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="products-tbody">
                                 <tr>
-                                    <td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">Loading
+                                    <td colspan="8" style="padding:24px;text-align:center;color:var(--muted);">Loading
                                         products…</td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    </div>
+
+                    <!-- INVENTORY (inside Products) -->
+                    <div id="products-inventory-view" hidden>
+                        <div class="section-header">
+                            <h2>Inventory &amp; Stock Alerts</h2>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <span class="muted" style="font-size:12px;" id="inv-threshold-label"></span>
+                                <button class="btn-ghost" type="button" style="font-size:12px;" onclick="loadInventory()">Refresh</button>
+                            </div>
+                        </div>
+                        <div class="inv-summary">
+                            <button type="button" class="inv-card is-out" onclick="setInventoryFilter('out')"><span class="inv-num" id="inv-out">—</span><span class="inv-label">Out of stock</span></button>
+                            <button type="button" class="inv-card is-low" onclick="setInventoryFilter('low')"><span class="inv-num" id="inv-low">—</span><span class="inv-label">Low stock</span></button>
+                            <button type="button" class="inv-card is-ok" onclick="setInventoryFilter('ok')"><span class="inv-num" id="inv-ok">—</span><span class="inv-label">In stock</span></button>
+                            <button type="button" class="inv-card" onclick="setInventoryFilter('')"><span class="inv-num" id="inv-all">—</span><span class="inv-label">All products</span></button>
+                        </div>
+
+                        <div class="card restock-card">
+                            <div class="settings-card-head">
+                                <h3>Restock Alerts</h3>
+                                <span class="muted small" id="restock-count"></span>
+                            </div>
+                            <div id="restock-alerts" class="restock-list"><div class="muted small">Loading…</div></div>
+                        </div>
+
+                        <div class="section-header" style="margin-top:18px;">
+                            <h2 style="font-size:16px !important;">Stock Levels</h2>
+                            <select id="inv-filter" class="role-select" onchange="renderInventory()" aria-label="Filter stock">
+                                <option value="">All products</option>
+                                <option value="out">Out of stock</option>
+                                <option value="low">Low stock</option>
+                                <option value="ok">In stock</option>
+                            </select>
+                        </div>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Stock</th>
+                                        <th>Alert</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-tbody">
+                                    <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--muted);">Loading inventory…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="section-header" style="margin-top:18px;">
+                            <h2 style="font-size:16px !important;">Recent Stock Movements</h2>
+                        </div>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Product</th>
+                                        <th>Type</th>
+                                        <th>Change</th>
+                                        <th>New stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inv-logs-tbody">
+                                    <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--muted);">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -290,7 +415,7 @@
                 <!-- ORDERS -->
                 <div class="admin-panel" id="panel-orders">
                     <div class="section-header">
-                        <h2>Orders Queue</h2>
+                        <h2>Orders Queue <span class="pickup-chip">Pick-up only</span></h2>
                         <div style="display:flex;gap:8px;align-items:center;">
                             <select id="order-status-filter" onchange="loadOrders()"
                                 style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:12px;background:white;">
@@ -312,12 +437,13 @@
                                     <th>Total</th>
                                     <th>Placed</th>
                                     <th>Status</th>
+                                    <th>Payment</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="orders-tbody">
                                 <tr>
-                                    <td colspan="6" style="padding:24px;text-align:center;color:var(--muted);">Loading
+                                    <td colspan="7" style="padding:24px;text-align:center;color:var(--muted);">Loading
                                         orders…</td>
                                 </tr>
                             </tbody>
@@ -402,6 +528,44 @@
                                     <button type="submit" class="btn" id="password-save-btn">Change Password</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- AUDIT LOG (admin only) -->
+                    <div class="card settings-card audit-card admin-only" id="audit-card">
+                        <div class="settings-card-head">
+                            <h3>Audit Log</h3>
+                            <span class="settings-badge">Admin only</span>
+                        </div>
+                        <p class="settings-help">Every login, failed password, locked account, user and role change, product and stock change, prescription review, order, payment and settings change — who did it and when.</p>
+                        <div class="audit-filters">
+                            <select id="audit-category" class="role-select" onchange="loadAudit()" aria-label="Filter by type">
+                                <option value="">All activity</option>
+                                <option value="auth">Logins &amp; passwords</option>
+                                <option value="user">Users &amp; roles</option>
+                                <option value="product">Products &amp; stock</option>
+                                <option value="prescription">Prescriptions</option>
+                                <option value="order">Orders &amp; payments</option>
+                                <option value="settings">Settings</option>
+                            </select>
+                            <input id="audit-search" type="search" placeholder="Search email, name, ID…" oninput="debounceAudit()" />
+                            <button class="btn-ghost" type="button" style="font-size:12px;" onclick="loadAudit()">Refresh</button>
+                        </div>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>When</th>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-tbody">
+                                    <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--muted);">Open Settings to load the audit log.</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -527,6 +691,107 @@
             <h3 id="admin-only-title">Admin only</h3>
             <p id="admin-only-msg">Only an admin can add new medicines.</p>
             <button class="btn" id="admin-only-ok" type="button" onclick="closeAdminOnly()">OK, got it</button>
+        </div>
+    </div>
+
+    <!-- Payment (FT-10 / FT-11) -->
+    <div class="ap-dialog-overlay" id="pay-overlay" onclick="if (event.target === this) closePayment()">
+        <div class="ap-dialog ap-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+            <button class="ap-dialog-close" type="button" onclick="closePayment()" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <h3 id="pay-title">Payment</h3>
+            <div id="pay-form-wrap">
+                <div class="pay-summary">
+                    <div><span class="muted small">Order</span><strong id="pay-order-label">—</strong></div>
+                    <div><span class="muted small">Customer</span><strong id="pay-customer">—</strong></div>
+                    <div class="pay-total"><span class="muted small">Total due</span><strong id="pay-total">₱0.00</strong></div>
+                </div>
+                <form id="pay-form" onsubmit="event.preventDefault(); confirmPayment()">
+                    <div class="settings-field">
+                        <span>Payment method</span>
+                        <div class="pos-fulfillment">
+                            <label class="pos-radio"><input type="radio" name="pay-method" value="cash" checked onchange="onPayMethodChange()" /> Cash</label>
+                            <label class="pos-radio"><input type="radio" name="pay-method" value="gcash" onchange="onPayMethodChange()" /> GCash</label>
+                        </div>
+                    </div>
+                    <label class="settings-field" id="pay-cash-field">
+                        <span>Amount tendered (₱)</span>
+                        <input id="pay-tendered" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 200.00" oninput="updateChangePreview()" />
+                    </label>
+                    <label class="settings-field" id="pay-gcash-field" hidden>
+                        <span>GCash reference number</span>
+                        <input id="pay-reference" type="text" maxlength="100" placeholder="13-digit reference" />
+                    </label>
+                    <div class="pay-change" id="pay-change-row"><span>Change</span><strong id="pay-change">₱0.00</strong></div>
+                    <p class="pay-error" id="pay-error" role="alert" hidden></p>
+                    <button class="btn" type="submit" id="pay-confirm-btn">Confirm</button>
+                </form>
+            </div>
+            <div id="pay-done" hidden></div>
+        </div>
+    </div>
+
+    <!-- Add user -->
+    <div class="ap-dialog-overlay" id="user-overlay" onclick="if (event.target === this) closeAddUserModal()">
+        <div class="ap-dialog ap-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="user-title">
+            <button class="ap-dialog-close" type="button" onclick="closeAddUserModal()" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <h3 id="user-title">Add User</h3>
+            <p>The account can log in right away with this email and password.</p>
+            <form id="user-form" onsubmit="event.preventDefault(); createUser()">
+                <div class="settings-fields">
+                    <label class="settings-field settings-wide"><span>Full name</span><input id="nu-name" maxlength="150" required /></label>
+                    <label class="settings-field"><span>Email</span><input id="nu-email" type="email" maxlength="254" required autocomplete="off" /></label>
+                    <label class="settings-field"><span>Phone (optional)</span><input id="nu-phone" type="tel" maxlength="30" placeholder="09XX XXX XXXX" /></label>
+                    <label class="settings-field"><span>Temporary password</span><input id="nu-pass" type="password" minlength="6" required autocomplete="new-password" placeholder="At least 6 characters" /></label>
+                    <label class="settings-field"><span>Role</span>
+                        <select id="nu-role" class="role-select" style="min-height:42px;">
+                            <option value="customer">Customer</option>
+                            <option value="counter">Counter</option>
+                            <option value="pharmacist">Pharmacist</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </label>
+                </div>
+                <p class="pay-error" id="nu-error" role="alert" hidden></p>
+                <div class="settings-actions">
+                    <button class="btn-ghost" type="button" onclick="closeAddUserModal()">Cancel</button>
+                    <button class="btn" type="submit" id="nu-save-btn" style="width:auto;">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Restock -->
+    <div class="ap-dialog-overlay" id="restock-overlay" onclick="if (event.target === this) closeRestock()">
+        <div class="ap-dialog" role="dialog" aria-modal="true" aria-labelledby="restock-title">
+            <button class="ap-dialog-close" type="button" onclick="closeRestock()" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <h3 id="restock-title">Restock</h3>
+            <p id="restock-info"></p>
+            <form onsubmit="event.preventDefault(); confirmRestock()" style="text-align:left;">
+                <label class="settings-field"><span>Units received</span><input id="restock-qty" type="number" min="1" max="100000" step="1" inputmode="numeric" required /></label>
+                <p class="pay-error" id="restock-error" role="alert" hidden></p>
+                <button class="btn" type="submit" id="restock-btn" style="margin-top:14px;">Add Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- OCR (prescription text) -->
+    <div class="ap-dialog-overlay" id="ocr-overlay" onclick="if (event.target === this) closeOcrDialog()">
+        <div class="ap-dialog ap-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="ocr-title">
+            <button class="ap-dialog-close" type="button" onclick="closeOcrDialog()" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <h3 id="ocr-title">Prescription OCR</h3>
+            <div id="ocr-body"></div>
+        </div>
+    </div>
+
+    <!-- General notice (e.g. out of stock) -->
+    <div class="ap-dialog-overlay" id="notice-overlay" onclick="if (event.target === this) closeNotice()">
+        <div class="ap-dialog" role="alertdialog" aria-modal="true" aria-labelledby="notice-title" aria-describedby="notice-msg">
+            <div class="ap-dialog-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            </div>
+            <h3 id="notice-title">Notice</h3>
+            <p id="notice-msg"></p>
+            <button class="btn" type="button" id="notice-ok" onclick="closeNotice()">OK</button>
         </div>
     </div>
 

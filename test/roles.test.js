@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeRole } from '../src/lib/roles.js';
-import { requireAdmin, requirePharmacy, requireStaff } from '../src/middleware/auth-middleware.js';
+import { requireAdmin, requirePharmacy, requireStaff, requirePos } from '../src/middleware/auth-middleware.js';
 
 // Each guard is [requireAuth, roleCheck]; call only the role check with a fake request.
 function allowed(guard, role) {
@@ -37,4 +37,11 @@ test('counter, pharmacist and admin can update order status; customers cannot', 
   assert.equal(allowed(requireStaff, 'pharmacist'), true);
   assert.equal(allowed(requireStaff, 'admin'), true);
   assert.equal(allowed(requireStaff, 'customer'), false);
+});
+
+test('FT-12: counter and admin can use the POS; pharmacist and customers cannot', () => {
+  assert.equal(allowed(requirePos, 'counter'), true);
+  assert.equal(allowed(requirePos, 'admin'), true);
+  assert.equal(allowed(requirePos, 'pharmacist'), false);
+  assert.equal(allowed(requirePos, 'customer'), false);
 });

@@ -172,3 +172,136 @@ img, video, canvas, iframe { max-width: 100%; }
   .site-nav .nav-actions .btn-ghost { padding: 8px 11px !important; font-size: 12.5px !important; }
   .admin-table td::before { flex-basis: 76px; }
 }
+
+/* =====================================================================
+   v6 — POS checkout, payments, inventory alerts, audit log, users,
+   out-of-stock and pick-up-only notes (customer pages)
+   ===================================================================== */
+.admin-shell [hidden], .ap-dialog [hidden] { display: none !important; }
+
+/* Sidebar badge + inventory sub-link */
+.sidebar-count {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--sun); color: var(--ink); font-size: 11px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sidebar-sublink { padding-left: 30px !important; font-size: 13px !important; }
+
+/* Dashboard restock banner */
+.stock-alert-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 18px; padding: 14px 18px; border-radius: 16px;
+  background: var(--sun-soft); border: 1.5px solid var(--sun); color: var(--ink);
+}
+.stock-alert-banner strong { font-size: 15px; }
+
+/* Pick-up only notes */
+.pickup-note {
+  font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.45;
+  background: var(--sun-soft); border: 1px solid var(--sun); border-radius: 10px; padding: 8px 10px;
+}
+.pickup-chip {
+  display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 10px; border-radius: 999px;
+  background: var(--sun-soft); color: #8a5a00; font-size: 11px; font-weight: 800; letter-spacing: .03em;
+}
+
+/* POS setup row */
+.pos-setup { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin: 0 0 16px !important; padding: 16px !important; }
+.pos-customer-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pos-customer-row input, .pos-customer-row select {
+  flex: 1 1 220px; min-width: 0; min-height: 42px; padding: 8px 12px; border-radius: 10px;
+  border: 1.5px solid var(--border); font: inherit; font-size: 14px; background: #fff; color: var(--ink);
+}
+.pos-fulfillment { display: flex; gap: 10px; flex-wrap: wrap; }
+.pos-radio {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.pos-radio input { accent-color: var(--red); width: 16px; height: 16px; }
+.pos-radio:has(input:checked) { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.pos-radio.is-disabled { opacity: .55; cursor: not-allowed; }
+.pos-radio em { font-style: normal; font-weight: 500; font-size: 12px; }
+.pos-product-stock { display: block; font-size: 11px; font-weight: 700; color: var(--mint); margin-top: 4px; }
+.pos-product-stock.is-out { color: var(--red); }
+.pos-product-btn.is-out { opacity: .55; filter: grayscale(.6); }
+.pos-product-btn.is-out:hover { transform: none !important; }
+
+/* Products → Catalog / Inventory tabs */
+.product-tabs { display: inline-flex; gap: 6px; padding: 5px; margin-bottom: 18px; border-radius: 999px; background: var(--cream); border: 1px solid var(--border); }
+.product-tab {
+  border: 0; background: transparent; cursor: pointer; padding: 8px 16px; border-radius: 999px;
+  font: inherit; font-size: 13px; font-weight: 800; color: var(--text-sub); display: inline-flex; align-items: center; gap: 6px;
+}
+.product-tab.active { background: var(--red); color: #fff; box-shadow: 0 6px 16px -8px rgba(200, 1, 4, .7); }
+
+/* Inventory */
+.inv-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.inv-card {
+  display: grid; gap: 2px; text-align: left; cursor: pointer; padding: 14px 16px; border-radius: 16px;
+  background: #fff; border: 1.5px solid var(--border); font: inherit; transition: transform .15s, box-shadow .15s;
+}
+.inv-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -16px rgba(40, 6, 8, .5); }
+.inv-num { font-size: 26px; font-weight: 800; color: var(--ink); font-family: var(--display, inherit); }
+.inv-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+.inv-card.is-out { border-color: var(--red); background: var(--red-light); }
+.inv-card.is-out .inv-num { color: var(--red); }
+.inv-card.is-low { border-color: var(--sun); background: var(--sun-soft); }
+.inv-card.is-ok .inv-num { color: var(--mint); }
+.restock-card { margin: 0 !important; }
+.restock-list { display: grid; gap: 8px; margin-top: 10px; }
+.restock-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; border-radius: 12px; border-left: 4px solid var(--sun); background: var(--sun-soft);
+}
+.restock-item.is-out { border-left-color: var(--red); background: var(--red-light); }
+.inv-row-out td { background: #fff6f6; }
+
+/* Payment dialog */
+.pay-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0 16px; }
+.pay-summary > div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--cream); border: 1px solid var(--border); min-width: 0; }
+.pay-summary strong { font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+.pay-total strong { color: var(--red); font-size: 18px; }
+#pay-form { display: grid; gap: 14px; }
+#pay-form .settings-field input { min-height: 44px; font-size: 16px; }
+.pay-change { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 12px; background: var(--mint-soft); color: var(--mint); font-weight: 800; }
+.pay-change strong { font-size: 20px; }
+.pay-change strong.is-short { color: var(--red); }
+.pay-change-big { margin-top: 12px; }
+.pay-change-big strong { font-size: 26px; }
+.pay-error {
+  margin: 0 !important; padding: 10px 12px; border-radius: 10px; background: var(--red-light);
+  color: var(--red) !important; font-weight: 700; font-size: 14px;
+}
+.receipt-order-no { display: grid; gap: 2px; text-align: center; margin-bottom: 12px; padding: 10px; border-radius: 12px; background: var(--sun-soft); font-size: 12px; color: var(--text-sub); }
+.receipt-order-no strong { font-size: 22px; color: var(--ink); letter-spacing: .04em; }
+.ap-dialog .receipt-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+
+/* Audit log */
+.audit-card { margin-top: 18px !important; }
+.audit-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.audit-filters input { flex: 1 1 200px; min-height: 36px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font: inherit; font-size: 13px; }
+.audit-card .admin-table-wrap { max-height: 520px; overflow: auto; }
+.audit-warn td { background: #fff8f6; }
+
+/* Customer pages: stock + out-of-stock */
+.stock-badge.out-of-stock, .badge.out-stock { background: var(--red-light) !important; color: var(--red) !important; font-weight: 800; }
+.btn.is-out-of-stock, .add-to-cart.is-out-of-stock {
+  background: #e9e3e2 !important; color: #8b7d7f !important; box-shadow: none !important; cursor: not-allowed;
+}
+.med-card.is-out, .product-card.is-out { opacity: .78; }
+
+/* Prescription upload: cancel / remove selected file */
+.rx-cancel-btn { display: inline-flex; align-items: center; gap: 6px; }
+.rx-x-btn {
+  position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--red-light); color: var(--red); display: inline-flex; align-items: center; justify-content: center;
+}
+#upload-area { position: relative; }
+
+@media (max-width: 760px) {
+  .pos-setup { grid-template-columns: minmax(0, 1fr); }
+  .inv-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pay-summary { grid-template-columns: minmax(0, 1fr); }
+  .product-tabs { display: flex; width: 100%; }
+  .product-tab { flex: 1; justify-content: center; }
+}

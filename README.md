@@ -52,4 +52,8 @@ missing permissions) without showing any secrets. Most fixes: paste
 `supabase/migrations/20261117120000_permissions_repair.sql` into the Supabase SQL editor
 and press Run, or correct the keys in Vercel → Settings → Environment Variables and redeploy.
 
+**4. After updating to v6:** run `supabase/migrations/20261118180000_v6_audit_lockout_payments.sql`
+in the Supabase SQL editor once (roles as text, login lockout, audit log, order numbers, payments).
+See `UI-REFRESH-NOTES.md` → v6 for what changed and where FT-10 to FT-12 are.
+
 Notes: uploads are capped at 4 MB (Vercel's request limit). `/api/*` is served by `api/index.js`; `public/` is served statically.

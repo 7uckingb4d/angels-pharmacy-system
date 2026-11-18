@@ -20,11 +20,17 @@ export function serializeProduct(p) {
 const RPC_STATUS = {
   ORDER_EMPTY: 400, INVALID_QUANTITY: 400, PRODUCT_UNAVAILABLE: 400, INSUFFICIENT_STOCK: 409,
   RX_REQUIRED: 403, ORDER_NOT_FOUND: 404, PRODUCT_NOT_FOUND: 404, ORDER_FINAL: 409,
+  TENDER_SHORT: 400, INVALID_PAYMENT: 400, ALREADY_PAID: 409,
 };
 export function sendRpcError(res, error) {
   const code = /^([A-Z_]+):/.exec(error?.message || '')?.[1];
   if (code && RPC_STATUS[code]) {
-    return res.status(RPC_STATUS[code]).json({ error: error.message.replace(/^[A-Z_]+:\s*/, '') });
+    return res.status(RPC_STATUS[code]).json({ error: error.message.replace(/^[A-Z_]+:\s*/, ''), code });
+  }
+  if (error?.code === 'PGRST202' || /could not find the function/i.test(error?.message || '')) {
+    return res.status(503).json({
+      error: 'This feature needs the latest database update. Run supabase/migrations/20261118180000_v6_audit_lockout_payments.sql in the Supabase SQL Editor.',
+    });
   }
   console.error('RPC error:', error);
   return res.status(500).json({ error: 'Something went wrong. Please try again.' });

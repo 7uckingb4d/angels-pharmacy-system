@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { requireAdmin } from '../middleware/auth-middleware.js';
 import { cleanSettings } from '../lib/settings.js';
 import { getSettings } from '../lib/settings-store.js';
+import { audit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.put('/', requireAdmin, async (req, res) => {
         : 'Unable to save settings. Please try again.',
     });
   }
+  await audit(req, 'settings.updated', { target_type: 'settings', target_id: '1', details: { fields: Object.keys(updates) } });
   return res.json({ message: 'Settings saved.', settings: await getSettings() });
 });
 

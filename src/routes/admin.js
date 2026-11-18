@@ -2,12 +2,13 @@
 // Public: POST /api/admin/contacts (contact form)
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
-import { requireStaff, requirePharmacy, requireAdmin } from '../middleware/auth-middleware.js';
+import { requireStaff, requirePharmacy, requireAdmin, requirePos } from '../middleware/auth-middleware.js';
 import { ROLE_LIST, normalizeRole } from '../lib/roles.js';
 import { isUuid, serializeProduct, sendRpcError } from '../lib/helpers.js';
 
 const router = Router();
 import { getSettings } from '../lib/settings-store.js';
+import { audit, isMissingSchema, V6_MIGRATION } from '../lib/audit.js';
 
 const lowStockLimit = async () => (await getSettings()).low_stock_threshold;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,8 +38,8 @@ router.get('/dashboard', requireStaff, async (_req, res) => {
   });
 });
 
-/* ── PRODUCTS incl. inactive (staff) ─────────────────────────────── */
-router.get('/products', requirePharmacy, async (_req, res) => {
+/* ── PRODUCTS incl. inactive (staff — counter needs it for the POS) ─ */
+router.get('/products', requireStaff, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from('Product').select('*, Category(category_name)').order('name');
   if (error) { console.error(error); return res.status(500).json({ error: 'Unable to load products.' }); }
   return res.json(data.map(serializeProduct));
@@ -51,7 +52,25 @@ router.get('/inventory', requirePharmacy, async (_req, res) => {
     .select('product_id, name, stock_quantity, price, is_active, Category(category_name)')
     .order('stock_quantity', { ascending: true });
   if (error) return res.status(500).json({ error: 'Unable to load inventory.' });
-  return res.json(data.map(p => ({ ...p, category: p.Category?.category_name ?? null, is_low: p.stock_quantity <= LOW_STOCK })));
+  return res.json(data.map(p => ({
+    ...p,
+    category: p.Category?.category_name ?? null,
+    threshold: LOW_STOCK,
+    is_out: p.stock_quantity <= 0,
+    is_low: p.stock_quantity <= LOW_STOCK,
+  })));
+});
+
+// Recent stock movements (restocks, sales, adjustments, returns).
+router.get('/inventory/logs', requirePharmacy, async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 200);
+  let query = supabaseAdmin.from('InventoryLog')
+    .select('log_id, product_id, quantity, previous_stock, new_stock, type, log_date, Product(name)')
+    .order('log_date', { ascending: false }).limit(limit);
+  if (req.query.type) query = query.eq('type', String(req.query.type));
+  const { data, error } = await query;
+  if (error) { console.error(error); return res.status(500).json({ error: 'Unable to load stock history.' }); }
+  return res.json(data.map(({ Product, ...l }) => ({ ...l, product_name: Product?.name ?? null })));
 });
 
 router.post('/inventory', requireAdmin, async (req, res) => {
@@ -62,7 +81,25 @@ router.post('/inventory', requireAdmin, async (req, res) => {
   }
   const { data, error } = await supabaseAdmin.rpc('adjust_stock', { p_product_id: product_id, p_new_stock: stock });
   if (error) return sendRpcError(res, error);
+  const { data: product } = await supabaseAdmin.from('Product').select('name').eq('product_id', product_id).maybeSingle();
+  await audit(req, data.new_stock > data.previous_stock ? 'product.restocked' : 'product.stock_adjusted', {
+    target_type: 'product', target_id: product_id,
+    details: { name: product?.name ?? null, previous_stock: data.previous_stock, new_stock: data.new_stock },
+  });
   return res.json(data);
+});
+
+/* ── CUSTOMERS for the POS (admin + counter) ─────────────────────── */
+router.get('/customers', requirePos, async (req, res) => {
+  const q = String(req.query.q || '').trim().replace(/[%,()]/g, ' ').slice(0, 60);
+  let query = supabaseAdmin.from('Profiles')
+    .select('id, full_name, phone, role, is_active')
+    .eq('is_active', true).eq('role', 'customer')
+    .order('full_name').limit(200);
+  if (q) query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`);
+  const { data, error } = await query;
+  if (error) { console.error(error); return res.status(500).json({ error: 'Unable to load customers.' }); }
+  return res.json(data.map(({ id, full_name, phone }) => ({ id, full_name, phone })));
 });
 
 /* ── SALES (completed orders) ────────────────────────────────────── */
@@ -127,7 +164,90 @@ router.get('/users', requireAdmin, async (_req, res) => {
     data.users.forEach(u => { emails[u.id] = u.email; });
     if (data.users.length < 1000) break;
   }
-  return res.json(profiles.map(p => ({ ...p, role: normalizeRole(p.role), email: emails[p.id] || '—' })));
+  // Login lockout info (5 wrong passwords). Ignored if the v6 migration has not been run yet.
+  const locks = {};
+  const { data: attempts, error: lockErr } = await supabaseAdmin.from('LoginAttempt')
+    .select('email, failed_count, locked_at').gt('failed_count', 0);
+  if (!lockErr) attempts.forEach(a => { locks[a.email] = a; });
+
+  return res.json(profiles.map(p => {
+    const email = emails[p.id] || '—';
+    const lock = locks[String(email).toLowerCase()];
+    return {
+      ...p, role: normalizeRole(p.role), email,
+      failed_logins: lock?.failed_count || 0,
+      locked: Boolean(lock?.locked_at),
+      locked_at: lock?.locked_at || null,
+    };
+  }));
+});
+
+/* ── CREATE USER (admin) ─────────────────────────────────────────── */
+router.post('/users', requireAdmin, async (req, res) => {
+  const { full_name, email, phone, password, role = 'customer' } = req.body ?? {};
+  const name = String(full_name ?? '').trim();
+  const cleanEmail = String(email ?? '').trim().toLowerCase();
+  const cleanPhone = String(phone ?? '').trim();
+  if (name.length < 2 || name.length > 150) return res.status(400).json({ error: 'Full name must be 2 to 150 characters.' });
+  if (!EMAIL_RE.test(cleanEmail) || cleanEmail.length > 254) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (cleanPhone && (cleanPhone.length < 7 || cleanPhone.length > 30)) return res.status(400).json({ error: 'Phone number must be 7 to 30 characters.' });
+  if (typeof password !== 'string' || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  if (!ROLE_LIST.includes(role)) return res.status(400).json({ error: `Role must be one of: ${ROLE_LIST.join(', ')}` });
+
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email: cleanEmail,
+    password,
+    email_confirm: true, // admin-created accounts can log in right away
+    user_metadata: { full_name: name, phone: cleanPhone },
+  });
+  if (error) {
+    console.error('Create user failed:', error);
+    if (error.status === 422 || /already (been )?registered|already exists/i.test(error.message || '')) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+    return res.status(400).json({ error: error.message || 'Unable to create the user.' });
+  }
+
+  const userId = data.user.id;
+  // The handle_new_user trigger creates the Profiles row; make sure it exists, then set the role.
+  const { data: existing } = await supabaseAdmin.from('Profiles').select('id').eq('id', userId).maybeSingle();
+  if (!existing) {
+    const { error: insertErr } = await supabaseAdmin.from('Profiles').insert({ id: userId, full_name: name, phone: cleanPhone || null });
+    if (insertErr) console.error('Profile insert failed:', insertErr);
+  }
+
+  let warning = null;
+  if (role !== 'customer') {
+    const { error: roleErr } = await supabaseAdmin.from('Profiles').update({ role }).eq('id', userId);
+    if (roleErr) {
+      console.error('Role assignment failed:', roleErr);
+      warning = `Account created as Customer — the role could not be set yet. Run ${V6_MIGRATION} in the Supabase SQL Editor, then change the role on this page.`;
+    }
+  }
+
+  await audit(req, 'user.created', {
+    target_type: 'user', target_id: userId,
+    details: { email: cleanEmail, name, role: warning ? 'customer' : role },
+  });
+  return res.status(201).json({ message: 'User created.', id: userId, warning });
+});
+
+/* ── UNLOCK ACCOUNT (admin) — after 5 wrong passwords ────────────── */
+router.post('/users/:id/unlock', requireAdmin, async (req, res) => {
+  if (!isUuid(req.params.id)) return res.status(404).json({ error: 'User not found.' });
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(req.params.id);
+  if (error || !data?.user?.email) return res.status(404).json({ error: 'User not found.' });
+  const email = data.user.email.toLowerCase();
+
+  const { error: delErr } = await supabaseAdmin.from('LoginAttempt').delete().eq('email', email);
+  if (delErr) {
+    console.error(delErr);
+    return res.status(isMissingSchema(delErr) ? 503 : 500).json({
+      error: isMissingSchema(delErr) ? `Run ${V6_MIGRATION} in the Supabase SQL Editor first.` : 'Unable to unlock this account.',
+    });
+  }
+  await audit(req, 'user.unlocked', { target_type: 'user', target_id: req.params.id, details: { email } });
+  return res.json({ message: 'Account unlocked. The user can log in again.' });
 });
 
 router.post('/users/:id/role', requireAdmin, async (req, res) => {
@@ -142,12 +262,39 @@ router.post('/users/:id/role', requireAdmin, async (req, res) => {
   const { error } = await supabaseAdmin.from('Profiles').update({ role }).eq('id', req.params.id);
   if (error) {
     console.error(error);
-    if (error.code === '22P02') {
-      return res.status(500).json({ error: 'The database still uses the old role names. Run supabase/migrations/20261118000000_roles_counter_pharmacist_admin.sql in the Supabase SQL Editor first.' });
+    // 22P02 = old enum without "counter"; 23514 = old check constraint.
+    if (error.code === '22P02' || error.code === '23514') {
+      return res.status(503).json({ error: `The database does not accept the "${role}" role yet. Run ${V6_MIGRATION} in the Supabase SQL Editor (once), then try again.` });
     }
     return res.status(400).json({ error: error.message });
   }
+  await audit(req, 'user.role_changed', {
+    target_type: 'user', target_id: req.params.id,
+    details: { from: normalizeRole(target.role), to: role },
+  });
   return res.json({ message: `User role updated to "${role}".` });
+});
+
+/* ── AUDIT LOG (admin) ───────────────────────────────────────────── */
+const AUDIT_CATEGORIES = ['auth', 'user', 'product', 'prescription', 'order', 'settings'];
+router.get('/audit', requireAdmin, async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+  const category = String(req.query.category || '');
+  const q = String(req.query.q || '').trim().replace(/[%,()]/g, ' ').slice(0, 80);
+
+  let query = supabaseAdmin.from('AuditLog').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (AUDIT_CATEGORIES.includes(category)) query = query.like('action', `${category}.%`);
+  if (q) query = query.or(`actor_email.ilike.%${q}%,actor_name.ilike.%${q}%,target_id.ilike.%${q}%,action.ilike.%${q}%`);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Audit log error:', error);
+    if (isMissingSchema(error)) {
+      return res.status(503).json({ error: `The audit log is not set up yet. Run ${V6_MIGRATION} in the Supabase SQL Editor.`, setup: true });
+    }
+    return res.status(500).json({ error: 'Unable to load the audit log.' });
+  }
+  return res.json(data);
 });
 
 export default router;

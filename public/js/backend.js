@@ -148,14 +148,23 @@ function setupSearch() {
 /* ── CART STATE ───────────────────────────────────────────── */
 
 function addToCart(product) {
+    // Out-of-stock items are never added (stock comes from the product button).
+    if (product.stock !== undefined && product.stock !== null && product.stock <= 0) {
+        if (window.APStock) APStock.alert(product.name); else showToast(product.name + " is out of stock \u2014 not added to cart.");
+        return;
+    }
     const existing = state.cart.find((item) => item.id === product.id);
     if (existing) {
+        if (existing.stock != null && existing.qty >= existing.stock) {
+            if (window.APStock) APStock.alert(product.name, "Only " + existing.stock + " of " + product.name + " left in stock.");
+            return;
+        }
         existing.qty++;
     } else {
         state.cart.push({ ...product, qty: 1 });
     }
     updateCartUI();
-    showToast("\u2713 " + product.name + " added to cart.");
+    showToast("\u2713 " + product.name + " added to cart \u2014 in-store pick-up only.");
     const btn = document.getElementById("cart-btn");
     if (btn) btn.animate(
         [{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }],
@@ -237,7 +246,9 @@ function createCartDrawer() {
         "<span style=\"font-size:13px;color:var(--muted);\">Subtotal</span>" +
         "<span id=\"cart-subtotal\" style=\"font-weight:700;color:var(--red);font-size:16px;\"></span>" +
         "</div>" +
-        "<div style=\"margin-bottom:12px;\"></div>" +
+        "<div class=\"pickup-note\" style=\"margin-bottom:12px;\">" +
+        "<strong>In-store pick-up only.</strong> We don't offer delivery. Pick up and pay at Angel's Pharmacy, Valenzuela City." +
+        "</div>" +
         "<button id=\"place-order-btn\" " +
         "style=\"width:100%;padding:12px;border-radius:10px;" +
         "background:linear-gradient(135deg,var(--red),var(--red-dark));" +
@@ -246,7 +257,7 @@ function createCartDrawer() {
         "Place Order \u2192" +
         "</button>" +
         "<div style=\"text-align:center;margin-top:8px;font-size:11px;color:var(--muted);\">" +
-        "You'll receive an SMS/email when your order is ready." +
+        "We'll tell you when your order is ready for pick-up." +
         "</div>";
 
     drawer.appendChild(header);
@@ -370,7 +381,12 @@ function renderCartDrawer() {
         // qty increase
         el.querySelector("[data-inc]").addEventListener("click", () => {
             const item = state.cart.find((x) => x.id === p.id);
-            if (item) { item.qty++; updateCartUI(); renderCartDrawer(); }
+            if (!item) return;
+            if (item.stock != null && item.qty >= item.stock) {
+                if (window.APStock) APStock.alert(item.name, "Only " + item.stock + " of " + item.name + " left in stock.");
+                return;
+            }
+            item.qty++; updateCartUI(); renderCartDrawer();
         });
 
         // remove entirely
@@ -414,6 +430,7 @@ async function placeOrder() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prescription_id,
+                fulfillment: 'pickup',
                 items: state.cart.map(i => ({
                     medicine_id: i.id,
                     quantity: i.qty,
@@ -427,7 +444,7 @@ async function placeOrder() {
         state.cart = [];
         updateCartUI();
         closeCart();
-        showToast("Order placed! We'll notify you when it's ready for pick-up.", 4500);
+        showToast("Order " + (data.order_label || "") + " placed for in-store pick-up (no delivery). We'll tell you when it's ready.", 5500);
     } catch (err) {
         showToast("" + err.message);
     } finally {
@@ -541,11 +558,13 @@ function escapeHtml(s) {
 }
 
 window._addToCart = function (btn) {
+    const stock = btn.dataset.stock === undefined || btn.dataset.stock === '' ? null : Number(btn.dataset.stock);
     const product = {
         id: btn.dataset.id,
         name: btn.dataset.name,
         price: parseFloat(btn.dataset.price),
-        requiresRx: btn.dataset.rx === 'true'
+        requiresRx: btn.dataset.rx === 'true',
+        stock: Number.isFinite(stock) ? stock : null,
     };
     addToCart(product);
 };

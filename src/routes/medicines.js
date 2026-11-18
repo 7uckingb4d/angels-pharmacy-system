@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { requireAdmin } from '../middleware/auth-middleware.js';
 import { productImageUpload, IMAGE_TYPES } from '../middleware/upload.js';
 import { isUuid, parseBoolean, serializeProduct, sendRpcError, diagnoseDbError } from '../lib/helpers.js';
+import { audit } from '../lib/audit.js';
 
 const router = Router();
 const BUCKET = 'product-images';
@@ -120,6 +121,10 @@ router.post('/', requireAdmin, productImageUpload.single('image'), async (req, r
     await removeImage(image.path);
     return res.status(400).json({ error: error.message });
   }
+  await audit(req, 'product.created', {
+    target_type: 'product', target_id: data.product_id,
+    details: { name: data.name, price: data.price, stock: data.stock_quantity },
+  });
   return res.status(201).json(serializeProduct(data));
 });
 
@@ -183,14 +188,20 @@ router.put('/:id', requireAdmin, productImageUpload.single('image'), async (req,
   }
 
   const { data } = await supabaseAdmin.from('Product').select(SELECT).eq('product_id', id).single();
+  await audit(req, 'product.updated', {
+    target_type: 'product', target_id: id,
+    details: { name: data?.name ?? null, fields: [...Object.keys(updates), ...(newStock !== undefined ? ['stock_quantity'] : [])] },
+  });
   return res.json(serializeProduct(data));
 });
 
 /* ── DEACTIVATE (admin) ──────────────────────────────────────────── */
 router.delete('/:id', requireAdmin, async (req, res) => {
   if (!isUuid(req.params.id)) return res.status(404).json({ error: 'Medicine not found.' });
-  const { error } = await supabaseAdmin.from('Product').update({ is_active: false }).eq('product_id', req.params.id);
+  const { data, error } = await supabaseAdmin.from('Product').update({ is_active: false })
+    .eq('product_id', req.params.id).select('name').maybeSingle();
   if (error) return res.status(400).json({ error: error.message });
+  await audit(req, 'product.removed', { target_type: 'product', target_id: req.params.id, details: { name: data?.name ?? null } });
   return res.json({ message: 'Medicine deactivated.' });
 });
 

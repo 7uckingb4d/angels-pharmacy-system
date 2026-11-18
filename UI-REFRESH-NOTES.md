@@ -85,3 +85,51 @@ Backend, API routes, database, auth flow, form fields and IDs: untouched.
   so settings can be saved. Until then the page shows a yellow note and the old values.
 - New API: `GET /api/settings` (public), `PUT /api/settings` (admin),
   `POST /api/auth/password` (signed in). Tests: `npm test` (now also checks settings rules).
+
+## v6 — tester fixes (Nov 18)
+
+**Run `supabase/migrations/20261118180000_v6_audit_lockout_payments.sql` once in the Supabase SQL Editor.**
+It is safe to run more than once and also covers the older roles migration. Until it is run, the site still
+works, but role changes to Counter, the audit log, account lockout, order numbers and payments are not saved.
+
+1. **Audit log** — Admin → Settings → *Audit Log* (admins only). Logs logins, wrong passwords, locked
+   accounts, sign-ups, password changes, new users, role changes, unlocks, product add/edit/remove,
+   restocks, prescription upload/approve/reject, orders, order status, payments (and refused payments),
+   and settings changes — with who, role, when and details. Filter by type or search.
+2. **Prescription upload → Cancel / ✕** — removes the selected file (before or after submitting). Disabled
+   only while the upload is in progress.
+3. **OCR in the admin panel** — Prescriptions → *Read (OCR)* reads the text on the photo and highlights
+   catalog medicines found in it. Purpose: helps the pharmacist read the prescription faster and spot which
+   medicines it asks for. It is only a helper; the pharmacist still checks the file and approves/rejects.
+   PDFs are opened with *View*.
+4. **admin.html is never shown to customers** — the page stays invisible until the login is confirmed as
+   staff; customers are sent to their home page before anything appears. (The data was already protected by
+   the server.)
+5. **In-store pick-up only** — notes in the cart, on add-to-cart, on medicine details, in the POS and in
+   the Orders queue. The server refuses any order that is not pick-up, and the database only allows
+   `fulfillment = 'pickup'`.
+6. **Out of stock** — catalog, medicine details, customer home and POS show *Out of Stock*; clicking the
+   button shows "… was not added to your cart — it is out of stock." The cart also can't go above the
+   stock left.
+7. **FT-10 to FT-12 are in Admin (log in as Admin or Counter):**
+   - FT-12 — **POS**: 1. choose a registered customer, 2. add products, 3. *Pick up*, then **Confirm Order**.
+     You get an order number (e.g. ORD-10492); it appears in **Orders** as Pending / Unpaid and the stock
+     goes down right away.
+   - FT-10 / FT-11 — **Orders → Proceed to Payment** (also on the POS order slip): choose **Cash**, enter the
+     amount tendered, **Confirm**. ₱200 on ₱100 shows change ₱100.00 and records method, amount and time.
+     ₱50 on ₱100 shows "Tendered amount is less than the total due." and the order stays unpaid.
+   - Counter now has the POS (admin + counter). Pharmacist does not.
+8. **Role → Counter fixed** — roles are now stored as text with a check (admin, pharmacist, counter,
+   customer), so the database accepts Counter.
+9. **Create users** — Users → *+ Add User* (name, email, phone, temporary password, role). The account can
+   log in right away.
+10. **Inventory inside Products** — Products → *Inventory & Alerts* (also in the side menu with a badge):
+    out-of-stock / low-stock / in-stock counts, **Restock Alerts** list, stock levels, *Restock* (admin
+    adds units received) and recent stock movements. The dashboard shows a restock banner. The low-stock
+    number is set in Settings.
+11. **5 wrong passwords lock the account** — the login message counts down the tries left. After 5 the
+    account is locked; only an admin can unlock it (Users → *Locked* → **Unlock**). Logged in the audit log.
+
+New API: `POST /api/admin/users`, `POST /api/admin/users/:id/unlock`, `GET /api/admin/customers`,
+`GET /api/admin/inventory/logs`, `GET /api/admin/audit`, `POST /api/orders/:id/payment`.
+Tests: `npm test` (adds lockout, payment/change, and POS access tests).

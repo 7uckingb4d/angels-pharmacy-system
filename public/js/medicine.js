@@ -78,9 +78,12 @@ function renderDetail(med) {
         ? '<span class="badge rx">Rx — Prescription Required</span>'
         : '<span class="badge otc">OTC — No Prescription Needed</span>';
 
-    const stockBadge = med.same_day_available
-        ? '<span class="badge safe">Same-day Available</span>'
-        : '<span class="badge" style="background:#fff3e0;color:#b45309;">Next Business Day</span>';
+    const out = window.APStock ? APStock.isOut(med) : false;
+    const stockBadge = out
+        ? '<span class="badge out-stock">Out of Stock</span>'
+        : med.same_day_available
+            ? '<span class="badge safe">Same-day Available</span>'
+            : '<span class="badge" style="background:#fff3e0;color:#b45309;">Next Business Day</span>';
 
     const rxNotice = med.requires_rx ? `
     <div class="rx-notice">
@@ -103,7 +106,7 @@ function renderDetail(med) {
           <div class="detail-price">₱${parseFloat(med.unit_price).toFixed(2)}</div>
           ${rxNotice}
           <div class="detail-actions" style="margin-top:${med.requires_rx ? '16px' : '0'};">
-            <button class="btn" onclick="handleAddToCart()">Add to Cart</button>
+            <button class="btn ${out ? 'is-out-of-stock' : ''}" onclick="handleAddToCart()">${out ? 'Out of Stock' : 'Add to Cart'}</button>
             <a href="catalog.html" class="btn-ghost">Back to Catalog</a>
           </div>
         </div>
@@ -121,7 +124,7 @@ function renderDetail(med) {
           </div>
           <div class="detail-row">
             <span class="label">Availability</span>
-            <span class="value">${med.same_day_available ? 'Same-day pick-up' : 'Next business day'}</span>
+            <span class="value">${out ? 'Out of stock' : med.same_day_available ? 'Same-day pick-up' : 'Next business day'}</span>
           </div>
           <div class="detail-row">
             <span class="label">Supplier Verified</span>
@@ -140,6 +143,7 @@ function renderDetail(med) {
 
         <div class="detail-card">
           <h3>Pick-up Information</h3>
+          <div class="pickup-note" style="margin:6px 0 10px;">In-store pick-up only — we don't offer delivery.</div>
           <div class="detail-row">
             <span class="label">Location</span>
             <span class="value">Valenzuela City</span>
@@ -160,6 +164,8 @@ function renderDetail(med) {
 
 /* ── Add to Cart — requires login ── */
 function handleAddToCart() {
+    // Out-of-stock medicines can't be added to the cart.
+    if (_medicine && window.APStock && APStock.isOut(_medicine)) { APStock.alert(_medicine.name); return; }
     const session = Auth.getSession();
     if (!session) {
         const currentPage = `medicine.html?id=${new URLSearchParams(window.location.search).get('id')}`;
@@ -181,7 +187,7 @@ function handleAddToCart() {
         document.getElementById('login-prompt').classList.add('open');
         return;
     }
-    showToast(`${_medicine?.name || 'Medicine'} added to cart!`);
+    showToast(`${_medicine?.name || 'Medicine'} added to cart! In-store pick-up only.`);
 }
 
 function closeLoginPrompt() { document.getElementById('login-prompt').classList.remove('open'); }

@@ -66,8 +66,10 @@ async function loadMedicines(search = '', sameDayOnly = false) {
             return;
         }
 
-        grid.innerHTML = data.map(med => `
-        <div class="product-card" role="listitem" data-id="${med.medicine_id}">
+        grid.innerHTML = data.map(med => {
+          const out = window.APStock ? APStock.isOut(med) : false;
+          return `
+        <div class="product-card ${out ? 'is-out' : ''}" role="listitem" data-id="${med.medicine_id}">
           <div class="product-img-wrap">
             ${med.image_url
                 ? `<img src="${med.image_url}" alt="${esc(med.name)}" class="product-img" style="width:100%;height:140px;object-fit:cover;border-radius:10px;" onerror="this.style.display='none'" />`
@@ -77,21 +79,23 @@ async function loadMedicines(search = '', sameDayOnly = false) {
             <div class="product-name">${esc(med.name)}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px;">
               ${med.requires_rx ? '<span class="badge rx">Rx</span>' : '<span class="badge otc">OTC</span>'}
-              ${med.same_day_available ? '<span class="badge safe">Same Day</span>' : ''}
+              ${out ? '<span class="badge out-stock">Out of Stock</span>' : med.same_day_available ? '<span class="badge safe">Same Day</span>' : ''}
               ${med.category ? `<span class="badge" style="background:var(--off-white);color:var(--muted);border:1px solid var(--border);">${esc(med.category)}</span>` : ''}
             </div>
             <div class="product-price">₱${parseFloat(med.unit_price).toFixed(2)}</div>
           </div>
-          <button class="btn add-to-cart"
+          <button class="btn add-to-cart ${out ? 'is-out-of-stock' : ''}"
                   data-id="${med.medicine_id}"
                   data-name="${esc(med.name)}"
                   data-price="${med.unit_price}"
                   data-rx="${med.requires_rx}"
+                  data-stock="${window.APStock && APStock.qty(med) !== null ? APStock.qty(med) : ''}"
                   onclick="window._addToCart && window._addToCart(this)">
-            Add to Cart
+            ${out ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
-      `).join('');
+      `;
+        }).join('');
 
     } catch (err) {
         grid.innerHTML = `<div style="text-align:center;padding:32px;color:var(--red);">${err.message}</div>`;
@@ -121,12 +125,12 @@ async function loadMyOrders() {
         container.innerHTML = data.slice(0, 5).map(order => `
       <div style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:13px;font-weight:600;">Order #${esc(String(order.order_id).slice(0, 8).toUpperCase())}</div>
+          <div style="font-size:13px;font-weight:600;">${esc(order.order_label || 'Order #' + String(order.order_id).slice(0, 8).toUpperCase())}</div>
           <span style="font-size:12px;font-weight:700;color:${statusColors[order.status] || 'var(--muted)'};">
             ${order.status.toUpperCase()}
           </span>
         </div>
-        <div class="small muted">${new Date(order.placed_at).toLocaleDateString('en-PH')} · ₱${parseFloat(order.total_amount).toFixed(2)}</div>
+        <div class="small muted">${new Date(order.placed_at).toLocaleDateString('en-PH')} · ₱${parseFloat(order.total_amount).toFixed(2)} · In-store pick-up${order.is_paid ? ' · Paid' : ''}</div>
       </div>
     `).join('');
 
@@ -199,6 +203,7 @@ function setRequestButton(mode) {
     const [text, disabled] = modes[mode] || modes.ready;
     btn.textContent = text;
     btn.disabled = disabled;
+    ['rx-cancel-btn', 'rx-x-btn'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = mode === 'uploading'; });
 }
 
 document.getElementById('rx-file').addEventListener('change', function () {
@@ -290,6 +295,33 @@ function watchPrescription(prescriptionId) {
         } catch { }
     }, 5000);
 }
+
+/* ── Cancel / X — remove the selected file (before or after submitting) ── */
+function resetRxUpload() {
+    if (rx.uploading) { showToast('Please wait — your prescription is still uploading.'); return; }
+    const input = document.getElementById('rx-file');
+    const previewImg = document.getElementById('preview-img');
+    if (previewImg.src && previewImg.src.startsWith('blob:')) URL.revokeObjectURL(previewImg.src);
+    previewImg.removeAttribute('src');
+    input.value = '';
+    rx.file = null;
+    rx.fp = null;
+    document.getElementById('preview-name').textContent = '';
+    document.getElementById('preview-time').textContent = '';
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('upload-prompt').style.display = '';
+    setRequestButton('ready');
+    if (!rx.poll) setRxStep(0);
+}
+['rx-cancel-btn', 'rx-x-btn'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const wasSent = rx.fp && wasSubmitted(rx.fp);
+        resetRxUpload();
+        if (!rx.uploading) showToast(wasSent ? 'File removed. Your submitted prescription is still with the pharmacist.' : 'Upload cancelled.');
+    });
+});
 
 /* ── OCR (reads text from a prescription photo) ── */
 const TESSERACT_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';

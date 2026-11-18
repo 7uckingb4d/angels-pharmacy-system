@@ -89,9 +89,12 @@ function renderMedicines(list) {
     }
 
     grid.innerHTML = list.map(med => {
-        const stockBadge = med.same_day_available
-            ? '<span class="stock-badge in-stock">● In Stock</span>'
-            : '<span class="stock-badge low-stock">Next Day</span>';
+        const out = window.APStock ? APStock.isOut(med) : false;
+        const stockBadge = out
+            ? '<span class="stock-badge out-of-stock">Out of Stock</span>'
+            : med.same_day_available
+                ? '<span class="stock-badge in-stock">● In Stock</span>'
+                : '<span class="stock-badge low-stock">Next Day</span>';
 
         const typeBadge = med.requires_rx
             ? '<span class="badge rx">Rx</span>'
@@ -102,7 +105,7 @@ function renderMedicines(list) {
             : `<div class="med-img-placeholder"></div>`;
 
         return `
-      <div class="med-card">
+      <div class="med-card ${out ? 'is-out' : ''}">
         ${img}
         <div class="med-body">
           <div class="med-badges">
@@ -116,8 +119,8 @@ function renderMedicines(list) {
         </div>
         <div class="med-actions">
           <a href="medicine.html?id=${med.medicine_id}" class="btn-ghost med-actions">View Details</a>
-          <button class="btn" onclick="handleAddToCart('${med.medicine_id}', '${esc(med.name)}', ${med.unit_price}, ${med.requires_rx})">
-            Add to Cart
+          <button class="btn ${out ? 'is-out-of-stock' : ''}" onclick="handleAddToCart('${med.medicine_id}', '${esc(med.name)}', ${med.unit_price}, ${med.requires_rx})">
+            ${out ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
       </div>
@@ -160,6 +163,9 @@ document.getElementById('search-input').addEventListener('input', () => {
 
 /* ── Add to Cart — requires login ── */
 function handleAddToCart(id, name, price, requiresRx) {
+    // Out-of-stock medicines can't be added to the cart.
+    const med = allMedicines.find(m => m.medicine_id === id);
+    if (med && window.APStock && APStock.isOut(med)) { APStock.alert(med.name); return; }
     const session = Auth.getSession();
     if (!session) {
         /* Save intended action and show login prompt */

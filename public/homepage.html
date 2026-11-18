@@ -122,6 +122,7 @@
                                     </button>
                                 </div>
                                 <div id="upload-preview" style="display:none;align-items:center;gap:12px;flex:1;">
+                                    <button class="rx-x-btn" id="rx-x-btn" type="button" aria-label="Remove selected file" title="Remove file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                                     <img id="preview-img" class="file-preview" alt="prescription preview" />
                                     <div>
                                         <div id="preview-name" style="font-weight:700;font-size:14px;"></div>
@@ -130,6 +131,7 @@
                                             <button class="btn-ghost" id="view-ocr-btn" type="button">View OCR</button>
                                             <button class="btn" id="request-verification" type="button"
                                                 onclick="event.stopPropagation()">Request Verification</button>
+                                            <button class="btn-ghost rx-cancel-btn" id="rx-cancel-btn" type="button">Cancel</button>
                                         </div>
                                     </div>
                                 </div>
@@ -284,6 +286,7 @@
     <div class="toast" id="toast"></div>
 
     <!-- backend.js handles: cart, refills. homepage.js handles: prescription upload + OCR -->
+    <script src="js/stock.js"></script>
     <script src="/js/backend.js" defer></script>
     <script src="/js/homepage.js"></script>
     <script src="js/ui.js" defer></script>

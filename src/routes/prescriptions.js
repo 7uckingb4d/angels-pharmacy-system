@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { requireAuth, requirePharmacy } from '../middleware/auth-middleware.js';
 import { prescriptionUpload, RX_TYPES } from '../middleware/upload.js';
 import { isUuid } from '../lib/helpers.js';
+import { audit } from '../lib/audit.js';
 
 const router = Router();
 const BUCKET = 'prescriptions';
@@ -30,6 +31,9 @@ router.post('/', requireAuth, prescriptionUpload.single('prescription'), async (
     console.error(error);
     return res.status(500).json({ error: 'Unable to save your prescription.' });
   }
+  await audit(req, 'prescription.uploaded', {
+    target_type: 'prescription', target_id: data.prescription_id, details: { file: file.originalname?.slice(0, 200) || null },
+  });
   return res.status(201).json({
     message: 'Prescription uploaded successfully. A pharmacist will review it shortly.',
     prescription_id: data.prescription_id,
@@ -87,6 +91,10 @@ router.patch('/:id', requirePharmacy, async (req, res) => {
 
   if (error) return res.status(400).json({ error: error.message });
   if (!data) return res.status(409).json({ error: 'Prescription not found or already reviewed.' });
+  await audit(req, `prescription.${status}`, {
+    target_type: 'prescription', target_id: data.prescription_id,
+    details: status === 'declined' ? { reason: data.rejection_reason } : null,
+  });
   return res.json({ message: `Prescription ${status}.`, prescription: data });
 });
 

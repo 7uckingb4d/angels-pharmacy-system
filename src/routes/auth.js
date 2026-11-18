@@ -3,6 +3,8 @@ import { Router } from 'express';
 import { createAnonClient, supabaseAdmin } from '../config/supabase.js';
 import { requireAuth } from '../middleware/auth-middleware.js';
 import { normalizeRole } from '../lib/roles.js';
+import { MAX_LOGIN_ATTEMPTS, LOCKED_MESSAGE, isWrongPassword, wrongPasswordMessage } from '../lib/lockout.js';
+import { audit } from '../lib/audit.js';
 
 const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +29,10 @@ router.post('/signup', async (req, res) => {
   if (error) return res.status(400).json({ error: error.message });
 
   // Profiles row is created by the handle_new_user trigger.
+  await audit(req, 'auth.signup', {
+    actor: { id: data.user?.id, email: data.user?.email, role: 'customer', name: full_name.trim() },
+    target_type: 'account', target_id: data.user?.id,
+  });
   return res.status(201).json({
     message: data.session
       ? 'Account created.'
@@ -35,15 +41,57 @@ router.post('/signup', async (req, res) => {
   });
 });
 
+/* ── Login lockout helpers (table: LoginAttempt — see the v6 migration) ── */
+async function getLoginLock(email) {
+  const { data, error } = await supabaseAdmin.from('LoginAttempt')
+    .select('failed_count, locked_at').eq('email', email).maybeSingle();
+  if (error) { console.warn('Login lockout check skipped:', error.message); return null; }
+  return data;
+}
+async function recordLoginFailure(email) {
+  const { data, error } = await supabaseAdmin.rpc('record_login_failure', { p_email: email, p_max: MAX_LOGIN_ATTEMPTS });
+  if (error) { console.warn('Login lockout not recorded:', error.message); return null; }
+  return data; // { failed_count, locked }
+}
+async function clearLoginFailures(email) {
+  const { error } = await supabaseAdmin.from('LoginAttempt').delete().eq('email', email);
+  if (error) console.warn('Login lockout reset skipped:', error.message);
+}
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+  const cleanEmail = String(email).trim().toLowerCase();
+  const who = { email: cleanEmail };
+
+  // Locked accounts stay locked until an admin unlocks them (Admin → Users → Unlock).
+  const lock = await getLoginLock(cleanEmail);
+  if (lock?.locked_at) {
+    await audit(req, 'auth.login_blocked', { actor: who, target_type: 'account', target_id: cleanEmail });
+    return res.status(423).json({ error: LOCKED_MESSAGE, locked: true });
+  }
 
   const { data, error } = await createAnonClient().auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
+    email: cleanEmail,
     password,
   });
-  if (error) return res.status(401).json({ error: error.message });
+  if (error) {
+    if (!isWrongPassword(error)) return res.status(401).json({ error: error.message });
+    const result = await recordLoginFailure(cleanEmail);
+    if (result?.locked) {
+      await audit(req, 'auth.account_locked', {
+        actor: who, target_type: 'account', target_id: cleanEmail, details: { failed_attempts: result.failed_count },
+      });
+      return res.status(423).json({ error: LOCKED_MESSAGE, locked: true });
+    }
+    await audit(req, 'auth.login_failed', {
+      actor: who, target_type: 'account', target_id: cleanEmail, details: { failed_attempts: result?.failed_count ?? null },
+    });
+    return res.status(401).json({
+      error: wrongPasswordMessage(result ? result.failed_count : null),
+      attempts_left: result ? Math.max(0, MAX_LOGIN_ATTEMPTS - result.failed_count) : null,
+    });
+  }
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('Profiles').select('full_name, phone, role, is_active').eq('id', data.user.id).single();
@@ -53,11 +101,18 @@ router.post('/login', async (req, res) => {
   }
   if (!profile.is_active) return res.status(403).json({ error: 'This account has been deactivated.' });
 
+  if (lock?.failed_count) await clearLoginFailures(cleanEmail);
+  const role = normalizeRole(profile.role);
+  await audit(req, 'auth.login', {
+    actor: { id: data.user.id, email: data.user.email, role, name: profile.full_name },
+    target_type: 'account', target_id: data.user.id,
+  });
+
   const { is_active, ...details } = profile;
   return res.json({
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
-    user: { id: data.user.id, email: data.user.email, ...details, role: normalizeRole(details.role) },
+    user: { id: data.user.id, email: data.user.email, ...details, role },
   });
 });
 
@@ -76,6 +131,7 @@ router.post('/refresh', async (req, res) => {
 
 router.post('/logout', requireAuth, async (req, res) => {
   await supabaseAdmin.auth.admin.signOut(req.accessToken).catch(() => {});
+  await audit(req, 'auth.logout', { target_type: 'account', target_id: req.user.id });
   return res.json({ message: 'Logged out successfully.' });
 });
 
@@ -94,6 +150,7 @@ router.post('/password', requireAuth, async (req, res) => {
 
   const { error } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, { password: new_password });
   if (error) return res.status(400).json({ error: error.message });
+  await audit(req, 'auth.password_changed', { target_type: 'account', target_id: req.user.id });
   return res.json({ message: 'Password changed.' });
 });
 
